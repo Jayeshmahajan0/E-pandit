@@ -17,7 +17,9 @@ const PORT = process.env.PORT || 5000;
 // ── Middleware ──────────────────────────────────
 app.use(
   cors({
-    origin: ["http://localhost:5173", "http://localhost:3000", "http://localhost:8080"],
+    origin: process.env.FRONTEND_URL 
+      ? [process.env.FRONTEND_URL, "http://localhost:5173", "http://localhost:3000"]
+      : ["http://localhost:5173", "http://localhost:3000", "http://localhost:8080"],
     credentials: true,
   })
 );
@@ -66,13 +68,15 @@ app.use((_req, res) => {
 app.use(errorHandler);
 
 // ── Start Server ───────────────────────────────
-app.listen(PORT, () => {
-  console.log(`\n  E-Pandit Backend Server v2.0`);
-  console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-  console.log(`📡 API Base URL: http://localhost:${PORT}/api`);
-  console.log(`📦 Routes: users, bookings, reviews, notifications, locations`);
-  console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
-});
+if (process.env.NODE_ENV !== "production") {
+  app.listen(PORT, () => {
+    console.log(`\n  E-Pandit Backend Server v2.0`);
+    console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+    console.log(`🚀 Server running on http://localhost:${PORT}`);
+    console.log(`📡 API Base URL: http://localhost:${PORT}/api`);
+    console.log(`📦 Routes: users, bookings, reviews, notifications, locations`);
+    console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
+  });
+}
 
 module.exports = app;

@@ -44,6 +44,8 @@ app.get("/", (_req, res) => {
       reviews: "/api/reviews",
       notifications: "/api/notifications",
       locations: "/api/locations",
+      panchang: "/api/panchang",
+      admin: "/api/admin",
     },
   });
 });

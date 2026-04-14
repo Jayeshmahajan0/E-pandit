@@ -34,6 +34,17 @@ const PriestProfilePage = () => {
                 <img src={priest.image} alt={priest.name} className="w-full aspect-[3/4] object-cover" />
                 <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-foreground/60 to-transparent p-5">
                   <h1 className="font-serif text-2xl font-bold text-primary-foreground">{priest.name}</h1>
+                  <div className="flex items-center gap-2 mt-2">
+                    {priest.verified ? (
+                      <span className="bg-sacred-green/90 text-white text-xs font-semibold px-2.5 py-1 rounded-full border border-white/20">
+                        ✓ Verified
+                      </span>
+                    ) : (
+                      <span className="bg-gold/90 text-white text-xs font-semibold px-2.5 py-1 rounded-full border border-white/20">
+                        Pending
+                      </span>
+                    )}
+                  </div>
                   <div className="flex items-center gap-2 mt-1">
                     <Star className="w-4 h-4 text-gold fill-gold" />
                     <span className="text-sm text-primary-foreground font-medium">{priest.rating}</span>

@@ -22,25 +22,62 @@ CREATE TABLE IF NOT EXISTS profiles (
   pin_code VARCHAR(6),
   latitude DECIMAL(10, 8),
   longitude DECIMAL(11, 8),
+  
   -- Pandit-specific (NULL for regular users)
   specializations TEXT[],
   experience_years INTEGER,
   languages TEXT[],
   price_per_pooja INTEGER,
   about TEXT,
+  gotra VARCHAR(100),
+  regional_traditions TEXT,
+  service_radius_km INTEGER DEFAULT 10,
+  min_booking_notice_hours INTEGER DEFAULT 24,
+  pooja_types TEXT[],
+  mantra_languages TEXT[],
+  pricing_table JSONB,
+  profile_photo_url TEXT,
+  aadhar_front_url TEXT,
+  aadhar_back_url TEXT,
+  priest_cert_url TEXT,
+  specialization_cert_url TEXT,
+  bank_account_number VARCHAR(20),
+  bank_ifsc VARCHAR(11),
+  bank_name VARCHAR(100),
+  
   -- Status
+  verification_status VARCHAR(20) DEFAULT 'pending' CHECK (verification_status IN ('pending', 'verified', 'rejected')),
+  verification_notes TEXT,
+  verified_at TIMESTAMPTZ,
+  verified_by UUID,
   is_online BOOLEAN DEFAULT false,
   is_verified BOOLEAN DEFAULT false,
   is_active BOOLEAN DEFAULT true,
+
   -- Preferences (for users)
   preferred_poojas TEXT[],
   preferred_languages TEXT[],
   notify_booking_updates BOOLEAN DEFAULT true,
   notify_promotions BOOLEAN DEFAULT false,
   notify_reminders BOOLEAN DEFAULT true,
+  
   -- Timestamps
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Admin role check adjustment
+ALTER TABLE profiles DROP CONSTRAINT IF EXISTS profiles_role_check;
+ALTER TABLE profiles ADD CONSTRAINT profiles_role_check CHECK (role IN ('user', 'pandit', 'admin'));
+
+-- Verification log table
+CREATE TABLE IF NOT EXISTS verification_logs (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  pandit_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  admin_id UUID REFERENCES profiles(id) NOT NULL,
+  action VARCHAR(20) NOT NULL CHECK (action IN ('approved', 'rejected', 'revoked')),
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- ── 2. BOOKINGS ─────────────────────────────────────────────

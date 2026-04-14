@@ -20,12 +20,14 @@ const UserProfilePage = () => {
     phone: string;
     dateOfBirth: string;
     gender: "male" | "female" | "other" | "prefer_not_to_say";
+    isVerified: boolean;
   }>({
     fullName: user?.full_name || (user as any)?.fullName || "Guest User",
     email: user?.email || "guest@epandit.com",
     phone: (user as any)?.phone || "",
     dateOfBirth: "1995-06-15",
     gender: "male",
+    isVerified: (user as any)?.isVerified || false,
   });
 
   const [isOnline, setIsOnline] = useState(user?.is_online || false);
@@ -56,10 +58,22 @@ const UserProfilePage = () => {
 
   useEffect(() => {
     if (!user?.id) return;
-    const fetchStats = async () => {
+    const fetchStatsData = async () => {
       try {
-        const { data } = await api.get(`/bookings/user/${user.id}`);
-        const bookings = data.data || [];
+        const [profileRes, statsRes] = await Promise.all([
+          api.get(`/users/profile/${user.id}`),
+          api.get(`/bookings/user/${user.id}`)
+        ]);
+        
+        if (profileRes.data?.data) {
+          setProfileData(prev => ({
+            ...prev,
+            isVerified: profileRes.data.data.is_verified,
+            phone: profileRes.data.data.phone || prev.phone
+          }));
+        }
+
+        const bookings = statsRes.data?.data || [];
         setStats({
           totalBookings: bookings.length,
           upcomingPoojas: bookings.filter((b: any) => ["requested", "accepted", "arriving", "in_progress"].includes(b.status)).length,
@@ -67,10 +81,10 @@ const UserProfilePage = () => {
           memberSinceMonths: 1
         });
       } catch (error) {
-        console.error("Failed to fetch user stats");
+        console.error("Failed to fetch user data");
       }
     };
-    fetchStats();
+    fetchStatsData();
   }, [user?.id]);
 
   const locationString = locationData.district && locationData.state
@@ -87,7 +101,7 @@ const UserProfilePage = () => {
             email={profileData.email}
             location={locationString}
             joinedDate="Jan 2025"
-            isVerified={true}
+            isVerified={profileData.isVerified}
             avatarUrl={user?.avatar_url || (user as any)?.avatarUrl || ""}
             onEditAvatar={async () => {
               const url = window.prompt("Enter the URL of your profile image:\n(For example: https://images.unsplash.com/...)");

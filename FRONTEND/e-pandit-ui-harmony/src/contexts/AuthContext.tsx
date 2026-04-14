@@ -3,7 +3,7 @@ import api from "../lib/api";
 
 export interface User {
   id: string;
-  role: "user" | "pandit";
+  role: "user" | "pandit" | "admin";
   full_name: string;
   email: string;
   is_online?: boolean;

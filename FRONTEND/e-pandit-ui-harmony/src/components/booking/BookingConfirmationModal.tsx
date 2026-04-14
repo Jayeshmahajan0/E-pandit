@@ -1,7 +1,9 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Star, MapPin, IndianRupee, Calendar, Clock, CreditCard, Banknote } from "lucide-react";
 import type { PanditProfile } from "@/data/mockData";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import api from "@/lib/api";
+import PanchangCard from "./PanchangCard";
 
 interface BookingConfirmationModalProps {
   isOpen: boolean;
@@ -20,6 +22,28 @@ const BookingConfirmationModal = ({ isOpen, onClose, onConfirm, pandit, poojaTyp
   const [includePoojaKit, setIncludePoojaKit] = useState(false);
 
   const totalAmount = pandit.pricePerPooja + (includePoojaKit ? 501 : 0);
+
+  const [panchangData, setPanchangData] = useState<any>(null);
+  const [loadingPanchang, setLoadingPanchang] = useState(false);
+
+  useEffect(() => {
+    if (!scheduledDate) {
+      setPanchangData(null);
+      return;
+    }
+    const fetchPanchang = async () => {
+      setLoadingPanchang(true);
+      try {
+        const res = await api.get(`/panchang?date=${scheduledDate}`);
+        setPanchangData(res.data.data);
+      } catch (err) {
+        console.error("Failed to fetch panchang data");
+      } finally {
+        setLoadingPanchang(false);
+      }
+    };
+    fetchPanchang();
+  }, [scheduledDate]);
 
   const handleConfirm = () => {
     const finalNotes = includePoojaKit ? `[Includes Premium Pooja Kit]\n${notes}` : notes;
@@ -117,6 +141,13 @@ const BookingConfirmationModal = ({ isOpen, onClose, onConfirm, pandit, poojaTyp
                   />
                 </div>
               </div>
+
+              {/* Dynamic Panchang Card Integration */}
+              {(scheduledDate || loadingPanchang) && (
+                <div className="mt-2">
+                  <PanchangCard data={panchangData} loading={loadingPanchang} />
+                </div>
+              )}
 
               {/* Payment method */}
               <div className="space-y-2">

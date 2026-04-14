@@ -158,7 +158,16 @@ const registerUser = async (req, res, next) => {
 // ──────────────────────────────────────────────
 const registerPandit = async (req, res, next) => {
   try {
-    const { fullName, email, phone, password, specializations, experienceYears, languages, pricePerPooja, about, state, district } = req.body;
+    const { 
+      fullName, email, phone, password, 
+      specializations, experienceYears, languages, 
+      pricePerPooja, about, state, district,
+      dob, gotra, regionalTraditions, serviceRadiusKm, minBookingNoticeHours,
+      poojaTypes, mantraLanguages, pricingTable,
+      profilePhotoUrl, aadharFrontUrl, aadharBackUrl,
+      priestCertUrl, specializationCertUrl,
+      bankAccountNumber, bankIfsc, bankName
+    } = req.body;
 
     if (!fullName || !email || !password || !specializations) {
       return res.status(400).json({ success: false, message: "Name, email, password, and specializations are required" });
@@ -177,6 +186,24 @@ const registerPandit = async (req, res, next) => {
           full_name: fullName, email, phone, password_hash: passwordHash,
           role: "pandit", specializations, experience_years: experienceYears,
           languages, price_per_pooja: pricePerPooja, about, state, district,
+          date_of_birth: dob || null, 
+          gotra: gotra || null, 
+          regional_traditions: regionalTraditions || null,
+          service_radius_km: serviceRadiusKm || 10,
+          min_booking_notice_hours: minBookingNoticeHours || 24,
+          pooja_types: poojaTypes || [],
+          mantra_languages: mantraLanguages || [],
+          pricing_table: pricingTable || null,
+          profile_photo_url: profilePhotoUrl || null,
+          aadhar_front_url: aadharFrontUrl || null,
+          aadhar_back_url: aadharBackUrl || null,
+          priest_cert_url: priestCertUrl || null,
+          specialization_cert_url: specializationCertUrl || null,
+          bank_account_number: bankAccountNumber || null,
+          bank_ifsc: bankIfsc || null,
+          bank_name: bankName || null,
+          verification_status: 'pending',
+          is_verified: false
         })
         .select()
         .single();

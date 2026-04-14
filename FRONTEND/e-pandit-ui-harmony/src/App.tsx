@@ -9,10 +9,11 @@ import PriestsPage from "./pages/PriestsPage";
 import PriestProfilePage from "./pages/PriestProfilePage";
 import PoojaKitsPage from "./pages/PoojaKitsPage";
 import DashboardPage from "./pages/DashboardPage";
-import AdminVerificationPage from "./pages/AdminVerificationPage";
+import AdminPanelPage from "./pages/AdminPanelPage";
 import UserProfilePage from "./pages/UserProfilePage";
 import SignInPage from "./pages/SignInPage";
 import SignUpPage from "./pages/SignUpPage";
+import PanchangPage from "./pages/PanchangPage";
 import BookPanditPage from "./pages/BookPanditPage";
 import BookingTrackingPage from "./pages/BookingTrackingPage";
 import PanditRegisterPage from "./pages/PanditRegisterPage";
@@ -34,8 +35,9 @@ const App = () => (
           <Route path="/priests" element={<PriestsPage />} />
           <Route path="/priests/:id" element={<PriestProfilePage />} />
           <Route path="/pooja-kits" element={<PoojaKitsPage />} />
+          <Route path="/panchang" element={<PanchangPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/admin/verification" element={<AdminVerificationPage />} />
+          <Route path="/admin/verification" element={<AdminPanelPage />} />
           <Route path="/profile" element={<UserProfilePage />} />
           <Route path="/signin" element={<SignInPage />} />
           <Route path="/signup" element={<SignUpPage />} />

@@ -4,7 +4,7 @@ import { Menu, X, Phone, User, LogIn, Zap, LayoutDashboard } from "lucide-react"
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import omOrnament from "@/assets/om-ornament.png";
 import { useAuth } from "@/contexts/AuthContext";
-import { LogOut } from "lucide-react";
+import { LogOut, ShieldCheck } from "lucide-react";
 
 
 
@@ -14,16 +14,23 @@ const Header = () => {
   const navigate = useNavigate();
   const { user, isAuthenticated, logout } = useAuth();
 
-  const navLinks = user?.role === "pandit" 
+  const navLinks = user?.role === "admin" 
+    ? [
+        { label: "Admin Panel", path: "/admin/verification" },
+        { label: "Home", path: "/" },
+      ]
+    : user?.role === "pandit" 
     ? [
         { label: "Home", path: "/" },
         { label: "My Bookings", path: "/pandit/dashboard" },
+        { label: "Panchang", path: "/panchang" },
         { label: "My Profile", path: "/profile" },
       ]
     : [
         { label: "Home", path: "/" },
         { label: "Find Pandit", path: "/priests" },
         { label: "Pooja Kits", path: "/pooja-kits" },
+        { label: "Panchang", path: "/panchang" },
         { label: "My Bookings", path: "/dashboard" },
       ];
 
@@ -149,7 +156,7 @@ const Header = () => {
                 </Link>
               ))}
 
-              {isAuthenticated && user?.role !== "pandit" && (
+              {isAuthenticated && user?.role !== "pandit" && user?.role !== "admin" && (
                 <Link
                   to="/profile"
                   onClick={() => setMobileOpen(false)}

@@ -20,9 +20,13 @@ const PriestCard = ({ priest, index }: { priest: PanditProfile; index: number })
   >
     <div className="relative">
       <img src={priest.image} alt={priest.name} className="w-full aspect-square object-cover" />
-      {priest.verified && (
-        <span className="absolute top-3 right-3 bg-sacred-green text-primary-foreground text-xs font-semibold px-2.5 py-1 rounded-full">
+      {priest.verified ? (
+        <span className="absolute top-3 right-3 bg-sacred-green text-white text-xs font-semibold px-2.5 py-1 rounded-full border border-sacred-green/20">
           ✓ Verified
+        </span>
+      ) : (
+        <span className="absolute top-3 right-3 bg-gold text-white text-xs font-semibold px-2.5 py-1 rounded-full border border-gold/20">
+          Pending
         </span>
       )}
       {!priest.online && (
@@ -90,7 +94,7 @@ const PriestsPage = () => {
           pricePerPooja: p.price_per_pooja || p.pricePerPooja || 1000,
           priceRange: `₹${p.price_per_pooja || p.pricePerPooja || 1000} - ₹${((p.price_per_pooja || p.pricePerPooja || 1000) * 4).toLocaleString('en-IN')}`,
           about: p.about || 'Experienced Vedic Pandit',
-          verified: p.is_verified ?? p.verified ?? true,
+          verified: p.verification_status === "verified" || (p.is_verified ?? p.verified ?? true),
           online: p.is_online ?? p.online ?? true,
         }));
         setAllPandits(formattedPandits);

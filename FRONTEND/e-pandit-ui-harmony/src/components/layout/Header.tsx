@@ -4,7 +4,8 @@ import { Menu, X, Phone, User, LogIn, Zap, LayoutDashboard } from "lucide-react"
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import omOrnament from "@/assets/om-ornament.png";
 import { useAuth } from "@/contexts/AuthContext";
-import { LogOut, ShieldCheck } from "lucide-react";
+import { LogOut, ShieldCheck, Globe } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 
 
@@ -14,24 +15,30 @@ const Header = () => {
   const navigate = useNavigate();
   const { user, isAuthenticated, logout } = useAuth();
 
+  const { t, i18n } = useTranslation();
+
+  const changeLanguage = (lng: string) => {
+    i18n.changeLanguage(lng);
+  };
+
   const navLinks = user?.role === "admin" 
     ? [
         { label: "Admin Panel", path: "/admin/verification" },
-        { label: "Home", path: "/" },
+        { label: t('nav.home'), path: "/" },
       ]
     : user?.role === "pandit" 
     ? [
-        { label: "Home", path: "/" },
+        { label: t('nav.home'), path: "/" },
         { label: "My Bookings", path: "/pandit/dashboard" },
-        { label: "Panchang", path: "/panchang" },
+        { label: t('nav.panchang'), path: "/panchang" },
         { label: "My Profile", path: "/profile" },
       ]
     : [
-        { label: "Home", path: "/" },
-        { label: "Find Pandit", path: "/priests" },
+        { label: t('nav.home'), path: "/" },
+        { label: t('nav.priests'), path: "/priests" },
         { label: "Pooja Kits", path: "/pooja-kits" },
-        { label: "Panchang", path: "/panchang" },
-        { label: "My Bookings", path: "/dashboard" },
+        { label: t('nav.panchang'), path: "/panchang" },
+        { label: t('nav.dashboard'), path: "/dashboard" },
       ];
 
   return (
@@ -62,6 +69,19 @@ const Header = () => {
 
         {/* Desktop CTA */}
         <div className="hidden md:flex items-center gap-2">
+          {/* Language Switcher */}
+          <div className="relative group mr-2">
+            <button className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-primary transition-colors px-2 py-2 rounded-lg">
+              <Globe className="w-4 h-4" />
+              <span className="uppercase">{i18n.language.split('-')[0]}</span>
+            </button>
+            <div className="absolute right-0 top-full mt-1 w-32 bg-card border border-border rounded-xl shadow-elevated opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 overflow-hidden z-50">
+              <button onClick={() => changeLanguage('en')} className={`w-full text-left px-4 py-2.5 text-sm hover:bg-secondary transition-colors ${i18n.language.startsWith('en') ? 'text-primary font-bold bg-primary/5' : 'text-foreground'}`}>English</button>
+              <button onClick={() => changeLanguage('hi')} className={`w-full text-left px-4 py-2.5 text-sm hover:bg-secondary transition-colors ${i18n.language.startsWith('hi') ? 'text-primary font-bold bg-primary/5' : 'text-foreground'}`}>हिंदी</button>
+              <button onClick={() => changeLanguage('mr')} className={`w-full text-left px-4 py-2.5 text-sm hover:bg-secondary transition-colors ${i18n.language.startsWith('mr') ? 'text-primary font-bold bg-primary/5' : 'text-foreground'}`}>मराठी</button>
+            </div>
+          </div>
+
           <a
             href="tel:+911234567890"
             className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors px-2"

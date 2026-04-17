@@ -12,6 +12,7 @@ const notificationRoutes = require("./routes/notificationRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const uploadRoutes = require("./routes/uploadRoutes");
 const panchangRoutes = require("./routes/panchangRoutes");
+const paymentRoutes = require("./routes/paymentRoutes");
 
 // ── App Setup ──────────────────────────────────
 const app = express();
@@ -45,6 +46,7 @@ app.get("/", (_req, res) => {
       notifications: "/api/notifications",
       locations: "/api/locations",
       panchang: "/api/panchang",
+      payments: "/api/payments",
       admin: "/api/admin",
     },
   });
@@ -63,6 +65,7 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/panchang", panchangRoutes);
+app.use("/api/payments", paymentRoutes);
 
 // ── 404 Handler ────────────────────────────────
 app.use((_req, res) => {

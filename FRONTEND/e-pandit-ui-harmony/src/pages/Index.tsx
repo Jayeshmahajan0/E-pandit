@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { ArrowRight, Star, MapPin } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import Layout from "@/components/layout/Layout";
 import TrustBadges from "@/components/shared/TrustBadge";
 import OrnamentDivider from "@/components/shared/OrnamentDivider";
@@ -19,6 +20,8 @@ const fadeUp = {
 };
 
 const Index = () => {
+  const { t } = useTranslation();
+
   return (
     <Layout>
       {/* Hero Section */}
@@ -51,9 +54,8 @@ const Index = () => {
                 transition={{ duration: 0.5, delay: 0.1 }}
                 className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold text-foreground leading-tight mb-6"
               >
-                Book Verified{" "}
-                <span className="text-gradient-saffron">Pandits</span> for
-                Every Sacred Ceremony
+                {t('hero.title')} <br className="hidden lg:block"/>
+                <span className="text-gradient-saffron">{t('hero.subtitle')}</span>
               </motion.h1>
 
               <motion.p
@@ -62,9 +64,7 @@ const Index = () => {
                 transition={{ duration: 0.5, delay: 0.2 }}
                 className="text-base md:text-lg text-muted-foreground mb-8 max-w-lg leading-relaxed"
               >
-                From Satyanarayan Katha to Griha Pravesh — find experienced,
-                verified pandits near you with complete pooja kits delivered to
-                your doorstep.
+                {t('hero.description')}
               </motion.p>
 
               <motion.div
@@ -75,12 +75,12 @@ const Index = () => {
               >
                 <Link to="/priests">
                   <AnimatedCTAButton size="lg">
-                    Find a Pandit <ArrowRight className="w-5 h-5" />
+                    {t('hero.cta_book')} <ArrowRight className="w-5 h-5" />
                   </AnimatedCTAButton>
                 </Link>
-                <Link to="/pooja-kits">
+                <Link to="/panchang">
                   <AnimatedCTAButton variant="outline" size="lg">
-                    Browse Pooja Kits
+                    {t('hero.cta_panchang')}
                   </AnimatedCTAButton>
                 </Link>
               </motion.div>

@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import PanchangCard from "@/components/booking/PanchangCard";
 import ChoghadiyaCard from "@/components/booking/ChoghadiyaCard";
+import HoroscopeSection from "@/components/booking/HoroscopeSection";
 import AnimatedCTAButton from "@/components/shared/AnimatedCTAButton";
 import api from "@/lib/api";
 
@@ -16,6 +17,34 @@ const PanchangPage = () => {
   const [panchangData, setPanchangData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("tithi");
+  const [activeViewTab, setActiveViewTab] = useState("panchang"); // For segregating sections
+  const [userDOB, setUserDOB] = useState("");
+  const [userNumerology, setUserNumerology] = useState<{mulank: number, bhagyank: number} | null>(null);
+
+  const isToday = selectedDate === new Date().toISOString().split('T')[0];
+
+  // Auto-switch back to panchang view if date changes from today and a hidden tab is active
+  useEffect(() => {
+    if (!isToday && (activeViewTab === "numerology" || activeViewTab === "horoscope")) {
+      setActiveViewTab("panchang");
+    }
+  }, [isToday, activeViewTab]);
+
+  const calculateNumerology = (dob: string) => {
+    if (!dob) {
+      setUserNumerology(null);
+      return;
+    }
+    const [y, m, d] = dob.split('-');
+    
+    let mSum = d.split('').reduce((a, b) => a + Number(b), 0);
+    while (mSum > 9) { mSum = String(mSum).split('').reduce((a, b) => a + Number(b), 0); }
+    
+    let bSum = (d + m + y).split('').reduce((a, b) => a + Number(b), 0);
+    while (bSum > 9) { bSum = String(bSum).split('').reduce((a, b) => a + Number(b), 0); }
+    
+    setUserNumerology({ mulank: mSum, bhagyank: bSum });
+  };
 
   useEffect(() => {
     const fetchPanchang = async () => {
@@ -139,85 +168,236 @@ const PanchangPage = () => {
           {/* Main Content Grid */}
           <div className="grid lg:grid-cols-12 gap-8 items-start">
             
-            {/* LEFT COLUMN: Panchang & Astrological Details (lg:8) */}
+            {/* LEFT COLUMN: Main Content (lg:8) */}
             <motion.div 
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.2 }}
               className="lg:col-span-8 flex flex-col gap-6"
             >
-              {/* Main Panchang Card */}
-              <div className="bg-card/60 backdrop-blur-3xl rounded-[2rem] border border-white/10 shadow-elevated p-1 md:p-2 relative group overflow-hidden mb-6">
-                <div className="absolute inset-0 bg-gradient-to-tr from-primary/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
-                <PanchangCard data={panchangData} loading={loading} className="border-0 shadow-none bg-transparent" />
-              </div>
-
-              {/* Choghadiya Card Component */}
-              <div className="mb-2">
-                {!loading && panchangData ? (
-                  <ChoghadiyaCard dayOfWeek={panchangData.day} />
-                ) : (
-                  <div className="h-64 bg-card/60 animate-pulse rounded-[2rem]" />
-                )}
-              </div>
-
-              {/* Astrotalk Style - Daily Planetary Positions & Horoscope */}
-              <div className="grid md:grid-cols-2 gap-6">
-                 {/* Kundali Placeholder Graphic */}
-                 <div className="bg-card rounded-[2rem] border border-border p-6 shadow-card relative overflow-hidden flex flex-col items-center justify-center text-center">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl -mr-10 -mt-10"></div>
-                    <Compass className="w-12 h-12 text-gold mb-3 opacity-80" />
-                    <h3 className="font-serif font-bold text-lg mb-2">Planetary Transit</h3>
-                    <p className="text-sm text-muted-foreground mb-4">View today's planetary positions and how they align with your Kundali.</p>
-                    
-                    {/* SVG representation of North Indian Kundali Chart */}
-                    <svg viewBox="0 0 100 100" className="w-32 h-32 text-primary/20 mb-4 drop-shadow-sm">
-                      <rect x="5" y="5" width="90" height="90" fill="none" stroke="currentColor" strokeWidth="2"/>
-                      <line x1="5" y1="5" x2="95" y2="95" stroke="currentColor" strokeWidth="2"/>
-                      <line x1="5" y1="95" x2="95" y2="5" stroke="currentColor" strokeWidth="2"/>
-                      <line x1="50" y1="5" x2="95" y2="50" stroke="currentColor" strokeWidth="2"/>
-                      <line x1="95" y1="50" x2="50" y2="95" stroke="currentColor" strokeWidth="2"/>
-                      <line x1="50" y1="95" x2="5" y2="50" stroke="currentColor" strokeWidth="2"/>
-                      <line x1="5" y1="50" x2="50" y2="5" stroke="currentColor" strokeWidth="2"/>
-                      {/* Fake Planets */}
-                      <text x="45" y="25" fontSize="6" fill="currentColor" className="font-bold opacity-60">Su</text>
-                      <text x="15" y="50" fontSize="6" fill="currentColor" className="font-bold opacity-60">Mo</text>
-                      <text x="75" y="50" fontSize="6" fill="currentColor" className="font-bold opacity-60">Ra</text>
-                      <text x="45" y="80" fontSize="6" fill="currentColor" className="font-bold opacity-60">Ju</text>
-                    </svg>
-                    
-                    <button className="text-xs font-bold text-primary hover:underline flex items-center gap-1">
-                      Generate Free Kundali <ArrowRight className="w-3 h-3" />
+              {/* Category Tabs */}
+              {panchangData && (
+                <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 mask-edges border-b border-border/50 mb-2">
+                  {[
+                    { id: "panchang", label: "Panchang", icon: Moon, show: true },
+                    { id: "numerology", label: "Numerology", icon: Sparkles, show: isToday },
+                    { id: "horoscope", label: "Horoscope", icon: Star, show: isToday },
+                    { id: "insights", label: "Kundali & Insights", icon: Compass, show: true }
+                  ].filter(tab => tab.show).map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveViewTab(tab.id)}
+                      className={`flex items-center gap-2 px-5 py-3 rounded-t-xl font-bold transition-all shrink-0 border-b-2 ${
+                        activeViewTab === tab.id
+                          ? "bg-secondary/30 text-primary border-primary"
+                          : "text-muted-foreground hover:bg-secondary/20 hover:text-foreground border-transparent"
+                      }`}
+                    >
+                      <tab.icon className="w-4 h-4" />
+                      {tab.label}
                     </button>
-                 </div>
+                  ))}
+                </div>
+              )}
 
-                 {/* Information Box */}
-                 <div className="bg-card rounded-[2rem] border border-border p-6 shadow-card hover:shadow-elevated transition-shadow h-full flex flex-col justify-center">
-                   <h3 className="font-serif text-lg font-bold mb-4 flex items-center gap-2">
-                     <Sparkles className="w-5 h-5 text-primary" /> Daily Insight
-                   </h3>
-                   <div className="space-y-4">
-                     <div className="p-3 bg-secondary/50 rounded-xl border border-secondary">
-                       <p className="text-xs text-muted-foreground uppercase tracking-wider font-bold mb-1">Moon Sign</p>
-                       <p className="text-sm font-medium text-foreground">
-                         {panchangData?.insights?.moonSign ? `Entering ${panchangData.insights.moonSign} by midday.` : "Calculating..."}
-                       </p>
+              {/* VIEW: Panchang */}
+              {activeViewTab === "panchang" && (
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-6">
+                  <div className="bg-card/60 backdrop-blur-3xl rounded-[2rem] border border-white/10 shadow-elevated p-1 md:p-2 relative group overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-tr from-primary/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+                    <PanchangCard data={panchangData} loading={loading} className="border-0 shadow-none bg-transparent" />
+                  </div>
+
+                  {!loading && panchangData ? (
+                    <ChoghadiyaCard dayOfWeek={panchangData.day} />
+                  ) : (
+                    <div className="h-64 bg-card/60 animate-pulse rounded-[2rem]" />
+                  )}
+                </motion.div>
+              )}
+
+              {/* VIEW: Numerology (Today Only) */}
+              {isToday && activeViewTab === "numerology" && panchangData && (
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-6">
+                  {/* Mulank & Bhagyank Calculator */}
+                  <div className="bg-gradient-to-br from-amber-50/80 via-card to-orange-50/50 dark:from-amber-950/30 dark:via-card dark:to-orange-950/20 rounded-[2rem] border border-amber-200/50 dark:border-amber-800/30 shadow-card p-6 md:p-8">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                      <div>
+                        <h3 className="font-serif text-xl font-bold flex items-center gap-2 text-foreground">
+                          <Sparkles className="w-5 h-5 text-amber-500" /> Personal Numerology
+                        </h3>
+                        <p className="text-sm text-muted-foreground mt-1">Enter your Date of Birth to discover your daily numbers.</p>
+                      </div>
+                      <div className="flex items-center gap-2 bg-white/60 dark:bg-black/20 p-2 rounded-xl border border-amber-200/50">
+                        <Calendar className="w-4 h-4 text-amber-600 ml-2" />
+                        <input 
+                          type="date" 
+                          value={userDOB}
+                          onChange={(e) => {
+                            setUserDOB(e.target.value);
+                            calculateNumerology(e.target.value);
+                          }}
+                          className="bg-transparent border-none outline-none text-sm font-semibold text-foreground"
+                        />
+                      </div>
+                    </div>
+
+                    {!userNumerology ? (
+                      <div className="text-center py-8 bg-white/40 dark:bg-black/10 rounded-2xl border border-amber-100 dark:border-amber-900/20">
+                        <Compass className="w-10 h-10 text-amber-300 mx-auto mb-3 opacity-50" />
+                        <p className="text-muted-foreground text-sm font-medium">Please select your birth date above to calculate your Mulank & Bhagyank.</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Mulank */}
+                        <div className="flex flex-col items-center text-center bg-white/60 dark:bg-white/5 rounded-2xl p-6 border border-amber-100 dark:border-amber-900/30 shadow-sm relative overflow-hidden">
+                          <div className="absolute -top-4 -right-4 w-16 h-16 bg-amber-500/10 rounded-full blur-xl pointer-events-none"></div>
+                          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-saffron flex items-center justify-center mb-4 shadow-glow relative z-10">
+                            <span className="text-3xl font-black font-serif text-white">{userNumerology.mulank}</span>
+                          </div>
+                          <h4 className="font-serif font-bold text-xl text-foreground mb-1">Your Mulank</h4>
+                          <p className="text-[10px] uppercase font-bold tracking-widest text-primary/70 mb-4">Root Number</p>
+                          <p className="text-sm text-muted-foreground leading-relaxed">
+                            {userNumerology.mulank === 1 ? "Ruled by Sun. You are an independent leader. Today favors taking charge of situations." :
+                             userNumerology.mulank === 2 ? "Ruled by Moon. You seek harmony. Excellent day for collaborations and partnerships." :
+                             userNumerology.mulank === 3 ? "Ruled by Jupiter. Highly creative. Let your artistic ideas guide your actions today." :
+                             userNumerology.mulank === 4 ? "Ruled by Rahu. Practical and grounded. Focus on organizing and building today." :
+                             userNumerology.mulank === 5 ? "Ruled by Mercury. Adventurous and free. Embrace changes and unexpected news." :
+                             userNumerology.mulank === 6 ? "Ruled by Venus. Loving and responsible. Dedicate time to your family and home." :
+                             userNumerology.mulank === 7 ? "Ruled by Ketu. Spiritual and analytical. A great day for meditation and learning." :
+                             userNumerology.mulank === 8 ? "Ruled by Saturn. Ambitious and strong. Focus heavily on career and finance today." :
+                             "Ruled by Mars. Compassionate and bold. Help someone unconditionally today."}
+                          </p>
+                        </div>
+                        {/* Bhagyank */}
+                        <div className="flex flex-col items-center text-center bg-white/60 dark:bg-white/5 rounded-2xl p-6 border border-amber-100 dark:border-amber-900/30 shadow-sm relative overflow-hidden">
+                          <div className="absolute -top-4 -left-4 w-16 h-16 bg-gold/10 rounded-full blur-xl pointer-events-none"></div>
+                          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-gold to-amber-600 flex items-center justify-center mb-4 shadow-glow relative z-10">
+                            <span className="text-3xl font-black font-serif text-white">{userNumerology.bhagyank}</span>
+                          </div>
+                          <h4 className="font-serif font-bold text-xl text-foreground mb-1">Your Bhagyank</h4>
+                          <p className="text-[10px] uppercase font-bold tracking-widest text-amber-600/70 mb-4">Destiny Number</p>
+                          <p className="text-sm text-muted-foreground leading-relaxed">
+                            {userNumerology.bhagyank === 1 ? "Your destiny involves reaching the top. Fortune supports bold moves today." :
+                             userNumerology.bhagyank === 2 ? "Your path is diplomacy. Luck comes through peaceful resolutions and networking." :
+                             userNumerology.bhagyank === 3 ? "Your destiny is wisdom. Luck shines on teaching, learning, and expression." :
+                             userNumerology.bhagyank === 4 ? "Success through perseverance. Patience today will overcome any obstacles." :
+                             userNumerology.bhagyank === 5 ? "Destined for movement. Business, trade, and communication are highly blessed." :
+                             userNumerology.bhagyank === 6 ? "Your path is beauty and care. Luck surrounds love and artistic endeavors." :
+                             userNumerology.bhagyank === 7 ? "A spiritual destiny. Intuition is your superpower—trust your gut feeling today." :
+                             userNumerology.bhagyank === 8 ? "Destined for material success. Hard work and discipline will yield lasting rewards." :
+                             "Destined for humanitarian leadership. Courage brings immense victory."}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+
+              {/* VIEW: Horoscope (Today Only) */}
+              {isToday && activeViewTab === "horoscope" && panchangData && (
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-6">
+                  {/* Daily Horoscope */}
+                  <div className="bg-card rounded-[2rem] border border-border shadow-card p-6 md:p-8">
+                    <h3 className="font-serif text-xl font-bold mb-2 flex items-center gap-2 text-foreground">
+                      <Star className="w-5 h-5 text-gold" /> Daily Horoscope
+                    </h3>
+                    <p className="text-sm text-muted-foreground mb-8">Select your zodiac sign to view today's prediction</p>
+                    <HoroscopeSection horoscope={panchangData.horoscope} />
+                  </div>
+
+                  {/* Daily Bhavishya (Predictions) */}
+                  <div className="bg-card rounded-[2rem] border border-border shadow-card p-6 md:p-8">
+                    <h3 className="font-serif text-xl font-bold mb-6 flex items-center gap-2 text-foreground">
+                      <BookOpen className="w-5 h-5 text-primary" /> Today's General Bhavishya
+                    </h3>
+                    <div className="grid md:grid-cols-3 gap-4">
+                      {panchangData.bhavishya?.map((pred: any, idx: number) => {
+                        const categoryIcons: Record<string, string> = { Career: "💼", Health: "🏥", Relationships: "❤️", Finance: "💰", Spiritual: "🙏" };
+                        const categoryColors: Record<string, string> = {
+                          Career: "from-blue-500/10 to-blue-500/5 border-blue-200 dark:border-blue-800/40",
+                          Health: "from-green-500/10 to-green-500/5 border-green-200 dark:border-green-800/40",
+                          Relationships: "from-rose-500/10 to-rose-500/5 border-rose-200 dark:border-rose-800/40",
+                          Finance: "from-amber-500/10 to-amber-500/5 border-amber-200 dark:border-amber-800/40",
+                          Spiritual: "from-purple-500/10 to-purple-500/5 border-purple-200 dark:border-purple-800/40",
+                        };
+                        return (
+                          <div key={idx} className={`p-5 rounded-2xl bg-gradient-to-br ${categoryColors[pred.category] || "from-secondary to-secondary/50 border-border"} border shadow-sm`}>
+                            <div className="w-10 h-10 rounded-full bg-white/50 dark:bg-black/20 flex items-center justify-center text-xl mb-3">
+                              {categoryIcons[pred.category] || "📌"}
+                            </div>
+                            <h4 className="font-bold text-foreground mb-2">{pred.category}</h4>
+                            <p className="text-sm text-muted-foreground leading-relaxed">{pred.message}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* VIEW: Kundali & Insights (Available for all days) */}
+              {activeViewTab === "insights" && panchangData && (
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-6">
+                  <div className="grid md:grid-cols-2 gap-6">
+                     {/* Kundali Placeholder Graphic */}
+                     <div className="bg-card rounded-[2rem] border border-border p-6 shadow-card relative overflow-hidden flex flex-col items-center justify-center text-center">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl -mr-10 -mt-10"></div>
+                        <Compass className="w-14 h-14 text-gold mb-4 opacity-80" />
+                        <h3 className="font-serif font-bold text-xl mb-2">Planetary Transit</h3>
+                        <p className="text-sm text-muted-foreground mb-6 px-4">View today's planetary positions and how they align with your Kundali.</p>
+                        
+                        {/* SVG representation of North Indian Kundali Chart */}
+                        <svg viewBox="0 0 100 100" className="w-40 h-40 text-primary/20 mb-6 drop-shadow-sm">
+                          <rect x="5" y="5" width="90" height="90" fill="none" stroke="currentColor" strokeWidth="2"/>
+                          <line x1="5" y1="5" x2="95" y2="95" stroke="currentColor" strokeWidth="2"/>
+                          <line x1="5" y1="95" x2="95" y2="5" stroke="currentColor" strokeWidth="2"/>
+                          <line x1="50" y1="5" x2="95" y2="50" stroke="currentColor" strokeWidth="2"/>
+                          <line x1="95" y1="50" x2="50" y2="95" stroke="currentColor" strokeWidth="2"/>
+                          <line x1="50" y1="95" x2="5" y2="50" stroke="currentColor" strokeWidth="2"/>
+                          <line x1="5" y1="50" x2="50" y2="5" stroke="currentColor" strokeWidth="2"/>
+                          {/* Fake Planets */}
+                          <text x="45" y="25" fontSize="6" fill="currentColor" className="font-bold opacity-60">Su</text>
+                          <text x="15" y="50" fontSize="6" fill="currentColor" className="font-bold opacity-60">Mo</text>
+                          <text x="75" y="50" fontSize="6" fill="currentColor" className="font-bold opacity-60">Ra</text>
+                          <text x="45" y="80" fontSize="6" fill="currentColor" className="font-bold opacity-60">Ju</text>
+                        </svg>
+                        
+                        <button className="text-sm font-bold text-primary hover:underline flex items-center gap-1">
+                          Generate Free Kundali <ArrowRight className="w-4 h-4" />
+                        </button>
                      </div>
-                     <div className="p-3 bg-secondary/50 rounded-xl border border-secondary">
-                       <p className="text-xs text-muted-foreground uppercase tracking-wider font-bold mb-1">Sun Sign</p>
-                       <p className="text-sm font-medium text-foreground">
-                         {panchangData?.insights?.sunSign ? `Remains in ${panchangData.insights.sunSign}.` : "Calculating..."}
-                       </p>
+
+                     {/* Information Box */}
+                     <div className="bg-card rounded-[2rem] border border-border p-8 shadow-card hover:shadow-elevated transition-shadow h-full flex flex-col justify-center">
+                       <h3 className="font-serif text-xl font-bold mb-6 flex items-center gap-2">
+                         <Sparkles className="w-6 h-6 text-primary" /> Daily Insight
+                       </h3>
+                       <div className="space-y-4">
+                         <div className="p-4 bg-secondary/50 rounded-2xl border border-secondary">
+                           <p className="text-xs text-muted-foreground uppercase tracking-wider font-bold mb-2">Moon Sign</p>
+                           <p className="text-base font-medium text-foreground">
+                             {panchangData?.insights?.moonSign ? `Entering ${panchangData.insights.moonSign} by midday.` : "Calculating..."}
+                           </p>
+                         </div>
+                         <div className="p-4 bg-secondary/50 rounded-2xl border border-secondary">
+                           <p className="text-xs text-muted-foreground uppercase tracking-wider font-bold mb-2">Sun Sign</p>
+                           <p className="text-base font-medium text-foreground">
+                             {panchangData?.insights?.sunSign ? `Remains in ${panchangData.insights.sunSign}.` : "Calculating..."}
+                           </p>
+                         </div>
+                         <div className="p-4 bg-sacred-green/10 rounded-2xl border border-sacred-green/20">
+                           <p className="text-xs text-sacred-green uppercase tracking-wider font-bold mb-2 flex items-center gap-1"><BookOpen className="w-3 h-3"/> Mantra of the Day</p>
+                           <p className="text-lg font-medium text-foreground font-serif italic">
+                             {panchangData?.insights?.mantra ? `"${panchangData.insights.mantra}"` : '"Om"'}
+                           </p>
+                         </div>
+                       </div>
                      </div>
-                     <div className="p-3 bg-sacred-green/10 rounded-xl border border-sacred-green/20">
-                       <p className="text-xs text-sacred-green uppercase tracking-wider font-bold mb-1 flex items-center gap-1"><BookOpen className="w-3 h-3"/> Mantra of the Day</p>
-                       <p className="text-sm font-medium text-foreground font-serif">
-                         {panchangData?.insights?.mantra ? `"${panchangData.insights.mantra}"` : '"Om"'}
-                       </p>
-                     </div>
-                   </div>
-                 </div>
-              </div>
+                  </div>
+                </motion.div>
+              )}
 
             </motion.div>
 

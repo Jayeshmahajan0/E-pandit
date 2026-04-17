@@ -20,31 +20,63 @@ try {
 
 const mockNotifications = [];
 
-// ── Notification templates ──────────────────────
+// ── Notification templates (i18n ready) ───────────
 const templates = {
   booking_request: (data) => ({
-    title: "New Booking Request!  ",
-    message: `${data.userName} wants to book you for ${data.poojaType}. Tap to accept.`,
+    title_translations: {
+      en: "New Booking Request!",
+      hi: "नया बुकिंग अनुरोध!",
+      mr: "नवीन बुकिंग विनंती!"
+    },
+    message_translations: {
+      en: `${data.userName} wants to book you for ${data.poojaType}. Tap to accept.`,
+      hi: `${data.userName} आपको ${data.poojaType} के लिए बुक करना चाहते हैं। स्वीकार करने के लिए टैप करें।`,
+      mr: `${data.userName} तुम्हाला ${data.poojaType} साठी बुक करू इच्छित आहेत. स्वीकारण्यासाठी टॅप करा.`
+    }
   }),
   booking_accepted: (data) => ({
-    title: "Booking Confirmed!   ",
-    message: `${data.panditName} has accepted your booking for ${data.poojaType}. They will arrive soon.`,
+    title_translations: {
+      en: "Booking Confirmed!",
+      hi: "बुकिंग की पुष्टि हो गई!",
+      mr: "बुकिंग निश्चित झाली!"
+    },
+    message_translations: {
+      en: `${data.panditName} has accepted your booking for ${data.poojaType}. They will arrive soon.`,
+      hi: `${data.panditName} ने ${data.poojaType} के लिए आपकी बुकिंग स्वीकार कर ली है। वे जल्द ही पहुंचेंगे।`,
+      mr: `${data.panditName} यांनी ${data.poojaType} साठी तुमची बुकिंग स्वीकारली आहे. ते लवकरच पोहोचतील.`
+    }
   }),
   pandit_arriving: (data) => ({
-    title: "Pandit is on the way! 🚗",
-    message: `${data.panditName} is heading to your location for ${data.poojaType}.`,
+    title_translations: { en: "Pandit is on the way! 🚗", hi: "पंडित जी रास्ते में हैं! 🚗", mr: "पंडित जी वाटेवर आहेत! 🚗" },
+    message_translations: {
+      en: `${data.panditName} is heading to your location for ${data.poojaType}.`,
+      hi: `${data.panditName} ${data.poojaType} के लिए आपके स्थान की ओर आ रहे हैं।`,
+      mr: `${data.panditName} ${data.poojaType} साठी तुमच्या स्थानाकडे येत आहेत.`
+    }
   }),
   pooja_started: (data) => ({
-    title: "Pooja Started  ",
-    message: `Your ${data.poojaType} has begun with ${data.panditName}.`,
+    title_translations: { en: "Pooja Started", hi: "पूजा शुरू", mr: "पूजा सुरू" },
+    message_translations: {
+      en: `Your ${data.poojaType} has begun with ${data.panditName}.`,
+      hi: `आपकी ${data.poojaType} ${data.panditName} के साथ शुरू हो गई है।`,
+      mr: `तुमची ${data.poojaType} ${data.panditName} सोबत सुरू झाली आहे.`
+    }
   }),
   pooja_completed: (data) => ({
-    title: "Pooja Completed! 🎉",
-    message: `Your ${data.poojaType} is complete. Please rate your experience.`,
+    title_translations: { en: "Pooja Completed! 🎉", hi: "पूजा संपन्न! 🎉", mr: "पूजा पूर्ण! 🎉" },
+    message_translations: {
+      en: `Your ${data.poojaType} is complete. Please rate your experience.`,
+      hi: `आपकी ${data.poojaType} पूरी हो गई है। कृपया अपना अनुभव साझा करें।`,
+      mr: `तुमची ${data.poojaType} पूर्ण झाली आहे. कृपया तुमचा अनुभव नोंदवा.`
+    }
   }),
   booking_cancelled: (data) => ({
-    title: "Booking Cancelled ❌",
-    message: `Your booking for ${data.poojaType} has been cancelled. ${data.reason || ""}`,
+    title_translations: { en: "Booking Cancelled ❌", hi: "बुकिंग रद्द ❌", mr: "बुकिंग रद्द ❌" },
+    message_translations: {
+      en: `Your booking for ${data.poojaType} has been cancelled. ${data.reason || ""}`,
+      hi: `आपकी ${data.poojaType} की बुकिंग रद्द कर दी गई है। ${data.reason || ""}`,
+      mr: `तुमची ${data.poojaType} ची बुकिंग रद्द झाली आहे. ${data.reason || ""}`
+    }
   }),
 };
 
@@ -74,13 +106,25 @@ const sendBookingNotification = async (req, res, next) => {
     const template = templates[type];
     if (!template) return res.status(400).json({ success: false, message: "Unknown notification type" });
 
-    const { title, message } = template(notifData || {});
+    const { title_translations, message_translations } = template(notifData || {});
+    // Fallback to English for standard non-translated fields
+    const title = title_translations.en;
+    const message = message_translations.en;
 
     // Save to DB
     if (supabase) {
       const { data, error } = await supabase
         .from("notifications")
-        .insert({ user_id: userId, type, title, message, booking_id: bookingId, channel: "app" })
+        .insert({ 
+          user_id: userId, 
+          type, 
+          title, 
+          message, 
+          title_translations, 
+          message_translations, 
+          booking_id: bookingId, 
+          channel: "app" 
+        })
         .select().single();
       if (error) throw error;
     }

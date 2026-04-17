@@ -29,8 +29,10 @@ CREATE TABLE IF NOT EXISTS profiles (
   languages TEXT[],
   price_per_pooja INTEGER,
   about TEXT,
+  about_translations JSONB DEFAULT '{}'::jsonb,
   gotra VARCHAR(100),
   regional_traditions TEXT,
+  regional_traditions_translations JSONB DEFAULT '{}'::jsonb,
   service_radius_km INTEGER DEFAULT 10,
   min_booking_notice_hours INTEGER DEFAULT 24,
   pooja_types TEXT[],
@@ -138,11 +140,30 @@ CREATE TABLE IF NOT EXISTS notifications (
     'review_received','welcome','system'
   )),
   title VARCHAR(255) NOT NULL,
+  title_translations JSONB DEFAULT '{}'::jsonb,
   message TEXT NOT NULL,
+  message_translations JSONB DEFAULT '{}'::jsonb,
   booking_id UUID REFERENCES bookings(id) ON DELETE SET NULL,
   is_read BOOLEAN DEFAULT false,
   channel VARCHAR(10) DEFAULT 'app' CHECK (channel IN ('app', 'email', 'sms')),
   created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ── 5. PAYMENTS ─────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS payments (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  booking_id UUID REFERENCES bookings(id) ON DELETE CASCADE NOT NULL,
+  razorpay_order_id VARCHAR(255),
+  razorpay_payment_id VARCHAR(255),
+  razorpay_signature TEXT,
+  amount INTEGER NOT NULL,
+  currency VARCHAR(5) DEFAULT 'INR',
+  status VARCHAR(20) DEFAULT 'created'
+    CHECK (status IN ('created','paid','failed','refunded')),
+  paid_at TIMESTAMPTZ,
+  refunded_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- ── INDEXES ─────────────────────────────────────────────────
@@ -155,6 +176,8 @@ CREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(status);
 CREATE INDEX IF NOT EXISTS idx_reviews_pandit ON reviews(pandit_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_unread ON notifications(user_id) WHERE is_read = false;
+CREATE INDEX IF NOT EXISTS idx_payments_booking ON payments(booking_id);
+CREATE INDEX IF NOT EXISTS idx_payments_order ON payments(razorpay_order_id);
 
 -- ── ENABLE REALTIME ─────────────────────────────────────────
 -- Run these in Supabase Dashboard > Database > Replication

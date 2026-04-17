@@ -24,6 +24,8 @@ const BookPanditPage = () => {
   const [loading, setLoading] = useState(false);
   const [selectedPandit, setSelectedPandit] = useState<PanditProfile | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [showPaymentFallback, setShowPaymentFallback] = useState(false);
+  const [pendingBookingId, setPendingBookingId] = useState<string | null>(null);
 
   const currentStateData = indianStates.find((s) => s.name === selectedState);
   const districts = currentStateData?.districts.map((d) => d.name) || [];
@@ -94,7 +96,7 @@ const BookPanditPage = () => {
         panditId: selectedPandit!.id,
         poojaType: selectedPooja,
         userAddress: data.address || "Pune, Maharashtra",
-        userLat: 18.5204, // Mocked for UI since we don't have map selector
+        userLat: 18.5204,
         userLng: 73.8567,
         scheduledDate: data.scheduledDate || new Date().toISOString().split("T")[0],
         scheduledTime: data.scheduledTime || "09:00",
@@ -103,13 +105,113 @@ const BookPanditPage = () => {
         notes: data.notes
       };
 
+      // 1. Create the booking first
       const response = await api.post("/bookings", payload);
       const newBooking = response.data.data;
 
-      toast.success("Booking request sent!   Waiting for pandit to accept...");
+      // 2. If UPI was selected, trigger Razorpay checkout
+      if (data.paymentMethod === "upi") {
+        try {
+          // Create Razorpay order
+          const orderRes = await api.post("/payments/create-order", {
+            bookingId: newBooking.id,
+            amount: data.amount,
+          });
+          const { orderId, amount: orderAmount, currency, key } = orderRes.data.data;
+
+          // Open Razorpay Checkout
+          const options = {
+            key,
+            amount: orderAmount,
+            currency,
+            name: "E-Pandit",
+            description: `${selectedPooja} — Booking Payment`,
+            order_id: orderId,
+            handler: async (rpResponse: any) => {
+              // Verify payment on backend
+              try {
+                await api.post("/payments/verify", {
+                  razorpay_order_id: rpResponse.razorpay_order_id,
+                  razorpay_payment_id: rpResponse.razorpay_payment_id,
+                  razorpay_signature: rpResponse.razorpay_signature,
+                  bookingId: newBooking.id,
+                });
+                toast.success("Payment successful! Booking confirmed.");
+                navigate(`/booking/${newBooking.id}`);
+              } catch {
+                toast.error("Payment verification failed. Please contact support.");
+                navigate(`/booking/${newBooking.id}`);
+              }
+            },
+            prefill: {
+              name: user?.full_name || (user as any)?.fullName || "",
+              email: user?.email || "",
+              contact: (user as any)?.phone || "",
+            },
+            theme: {
+              color: "#8B1A1A",
+            },
+            modal: {
+              ondismiss: () => {
+                toast.info("Payment cancelled.");
+                setLoading(false);
+                setPendingBookingId(newBooking.id);
+                setShowPaymentFallback(true);
+              },
+            },
+          };
+
+          const razorpay = new (window as any).Razorpay(options);
+          razorpay.open();
+          return; // Don't set loading false here; Razorpay modal handles it
+        } catch (err: any) {
+          console.error("Razorpay error:", err);
+          toast.error("Could not initiate payment.");
+          setLoading(false);
+          setPendingBookingId(newBooking.id);
+          setShowPaymentFallback(true);
+          return;
+        }
+      }
+
+      // 3. Cash booking — just navigate
+      toast.success("Booking request sent! Waiting for pandit to accept...");
       navigate(`/booking/${newBooking.id}`);
     } catch (error: any) {
       toast.error(error.response?.data?.error || "Failed to create booking.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleConvertToCash = async () => {
+    if (!pendingBookingId) return;
+    try {
+      setLoading(true);
+      await api.put(`/bookings/${pendingBookingId}/convert-to-cash`);
+      toast.success("Converted to Cash! Booking mapped successfully.");
+      setShowPaymentFallback(false);
+      navigate(`/booking/${pendingBookingId}`);
+    } catch (err) {
+      toast.error("Failed to transfer payment to cash.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelPendingBooking = async () => {
+    if (!pendingBookingId) return;
+    try {
+      setLoading(true);
+      await api.put(`/bookings/${pendingBookingId}/cancel`, {
+        reason: "Payment incomplete",
+        cancelledBy: "user",
+      });
+      toast.success("Payment incomplete. Booking cancelled.");
+      setShowPaymentFallback(false);
+      setPendingBookingId(null);
+    } catch (err) {
+      toast.error("Failed to cancel booking.");
     } finally {
       setLoading(false);
     }
@@ -328,7 +430,7 @@ const BookPanditPage = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center"
+            className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-center justify-center"
           >
             <motion.div
               initial={{ scale: 0.9 }}
@@ -336,8 +438,52 @@ const BookPanditPage = () => {
               className="bg-card p-8 rounded-2xl text-center shadow-elevated"
             >
               <Loader2 className="w-10 h-10 text-primary animate-spin mx-auto mb-3" />
-              <p className="font-serif font-bold text-foreground">Sending booking request...</p>
+              <p className="font-serif font-bold text-foreground">Processing request...</p>
               <p className="text-xs text-muted-foreground mt-1">Please wait</p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Payment Fallback Modal */}
+      <AnimatePresence>
+        {showPaymentFallback && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-card rounded-2xl p-6 md:p-8 max-w-md w-full shadow-elevated relative"
+            >
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+                <span className="text-red-600 text-xl font-bold">!</span>
+              </div>
+              <h3 className="font-serif text-2xl font-bold text-center text-foreground mb-2">
+                Payment Incomplete
+              </h3>
+              <p className="text-center text-muted-foreground mb-6">
+                Your UPI payment was not completed. Would you like to switch to paying via Cash, or completely cancel this booking request?
+              </p>
+
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={handleConvertToCash}
+                  className="w-full py-3 bg-gradient-saffron text-white font-bold rounded-xl shadow-soft hover:shadow-glow transition-all"
+                >
+                  Convert to Cash Payment
+                </button>
+                <button
+                  onClick={handleCancelPendingBooking}
+                  className="w-full py-3 bg-red-50 text-red-600 font-bold rounded-xl hover:bg-red-100 transition-all border border-red-200"
+                >
+                  Cancel Booking
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         )}

@@ -1,0 +1,24 @@
+{
+  "nav": {
+    "home": "Home",
+    "priests": "Priests",
+    "panchang": "Panchang",
+    "login": "Login",
+    "dashboard": "Dashboard"
+  },
+  "hero": {
+    "title": "Divine Connection,",
+    "subtitle": "Digital Convenience",
+    "description": "Book verified authentic Pandits for all your religious ceremonies. Experience seamless spirituality at your doorstep.",
+    "cta_book": "Book a Pandit",
+    "cta_panchang": "View Today's Panchang"
+  },
+  "features": {
+    "verified": "Verified Pandits",
+    "verified_desc": "All our priests undergo strict background checks and Vedic knowledge verification.",
+    "transparent": "Transparent Pricing",
+    "transparent_desc": "No hidden costs. Clear pricing for all poojas and ceremonies upfront.",
+    "support": "24/7 Support",
+    "support_desc": "Round-the-clock spiritual assistance and booking support."
+  }
+}

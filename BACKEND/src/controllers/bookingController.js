@@ -69,10 +69,10 @@ const createBooking = async (req, res, next) => {
 
       if (error) throw error;
 
-      // Send email to Pandit!
-      if (booking.pandit?.email) {
+      // Send email to Pandit ONLY if cash payment (for UPI, paymentController handles it after success)
+      if (paymentMethod === "cash" && booking.pandit?.email) {
         const subject = "New Booking Request! 🙏";
-        const message = `Hello ${booking.pandit.full_name},\n\nYou have received a new booking request from ${booking.user?.full_name} for a ${booking.pooja_type} on ${booking.scheduled_date} at ${booking.scheduled_time}.\n\nAddress: ${booking.user_address}\nAmount: ₹${booking.amount}\n\nPlease login to your E-Pandit Dashboard to Accept or Reject this booking.`;
+        const message = `Hello ${booking.pandit.full_name},\n\nYou have received a new booking request from ${booking.user?.full_name} for a ${booking.pooja_type} on ${booking.scheduled_date} at ${booking.scheduled_time}.\n\nAddress: ${booking.user_address}\nAmount: ₹${booking.amount}\nPayment Method: Cash\n\nPlease login to your E-Pandit Dashboard to Accept or Reject this booking.`;
         await sendEmail(booking.pandit.email, subject, message);
       }
 
@@ -190,8 +190,18 @@ const cancelBooking = async (req, res, next) => {
       const { data, error } = await supabase
         .from("bookings")
         .update({ status: "cancelled", cancelled_by: cancelledBy, cancellation_reason: reason, cancelled_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-        .eq("id", id).select().single();
+        .eq("id", id)
+        .select("*, user:user_id(email, full_name)")
+        .single();
       if (error) throw error;
+
+      // Send cancellation email to the Booker only
+      if (data.user?.email) {
+        const subject = "Booking Cancelled - E-Pandit";
+        const message = `Dear ${data.user.full_name},\n\nYour booking request for "${data.pooja_type}" has been cancelled.\nReason: ${reason || "Not specified"}\n\nIf you have any questions, please contact E-Pandit support.\n\nRegards,\nTeam E-Pandit`;
+        await sendEmail(data.user.email, subject, message);
+      }
+
       return res.json({ success: true, message: "Booking cancelled", data });
     }
 
@@ -280,12 +290,51 @@ const getPanditBookings = async (req, res, next) => {
   }
 };
 
+// ──────────────────────────────────────────────
+// PUT /api/bookings/:id/convert-to-cash
+// ──────────────────────────────────────────────
+const convertToCash = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    if (supabase) {
+      const { data: booking, error } = await supabase
+        .from("bookings")
+        .update({ payment_method: "cash", updated_at: new Date().toISOString() })
+        .eq("id", id)
+        .select(`
+          *,
+          pandit:pandit_id(email, full_name),
+          user:user_id(full_name)
+        `)
+        .single();
+        
+      if (error) throw error;
+      if (!booking) return res.status(404).json({ success: false, message: "Booking not found" });
+
+      // Send email to Pandit now that it is a cash booking
+      if (booking.pandit?.email) {
+        const subject = "New Booking Request! 🙏";
+        const message = `Hello ${booking.pandit.full_name},\n\nYou have received a new booking request from ${booking.user?.full_name} for a ${booking.pooja_type} on ${booking.scheduled_date} at ${booking.scheduled_time}.\n\nAddress: ${booking.user_address}\nAmount: ₹${booking.amount}\nPayment Method: Cash (Converted from UPI)\n\nPlease login to your E-Pandit Dashboard to Accept or Reject this booking.`;
+        await sendEmail(booking.pandit.email, subject, message);
+      }
+
+      return res.json({ success: true, message: "Converted to cash payment", data: booking });
+    }
+
+    return res.json({ success: false, message: "Only supported with Supabase" });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createBooking,
   acceptBooking,
   rejectBooking,
   updateBookingStatus,
   cancelBooking,
+  convertToCash,
   getBooking,
   getUserBookings,
   getPanditBookings,

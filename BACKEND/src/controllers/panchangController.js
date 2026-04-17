@@ -72,7 +72,79 @@ const getPanchangForDate = async (req, res, next) => {
         moonSign: zodiacs[dateNum % zodiacs.length],
         sunSign: zodiacs[(targetDate.getMonth() + 3) % 12],
         mantra: mantras[dateNum % mantras.length]
-      }
+      },
+
+      // ── Mulank & Bhagyank ──────────────────────
+      mulank: (() => {
+        let sum = targetDate.getDate();
+        while (sum > 9) { sum = String(sum).split('').reduce((a, b) => a + Number(b), 0); }
+        return sum;
+      })(),
+      bhagyank: (() => {
+        const dd = targetDate.getDate();
+        const mm = targetDate.getMonth() + 1;
+        const yyyy = targetDate.getFullYear();
+        let sum = dd + mm + String(yyyy).split('').reduce((a, b) => a + Number(b), 0);
+        while (sum > 9) { sum = String(sum).split('').reduce((a, b) => a + Number(b), 0); }
+        return sum;
+      })(),
+
+      // ── Day-wise Bhavishya (Daily Prediction) ──
+      bhavishya: (() => {
+        const predictions = [
+          { category: "Career", message: "A great day to take initiative in your professional life. New opportunities may knock at your door." },
+          { category: "Health", message: "Take care of your digestive system today. Light meals and a short walk will do wonders." },
+          { category: "Relationships", message: "Harmony in family life. A good day to resolve pending misunderstandings with loved ones." },
+          { category: "Finance", message: "Avoid impulsive spending today. Focus on long-term investments and savings." },
+          { category: "Spiritual", message: "Meditation and chanting today will bring inner peace. Visit a temple if possible." },
+          { category: "Career", message: "A mentor figure may guide you today. Stay receptive to feedback and new learning." },
+          { category: "Health", message: "Excellent day for starting a new fitness routine. Your energy levels are high." },
+          { category: "Relationships", message: "Express gratitude to those close to you. Small gestures will strengthen bonds." },
+          { category: "Finance", message: "Unexpected gains are possible. However, avoid lending money today." },
+          { category: "Spiritual", message: "The cosmic energy supports deep introspection today. Journal your thoughts." },
+          { category: "Career", message: "Teamwork will lead to success today. Collaborate with your peers for best results." },
+          { category: "Health", message: "Stay hydrated and avoid oily food. Yoga or pranayama is recommended today." },
+          { category: "Relationships", message: "A reunion with an old friend brings joy. Social gatherings are favored." },
+          { category: "Finance", message: "A good day for property-related discussions. Review your budget carefully." },
+          { category: "Spiritual", message: "Offer prayers during Brahma Muhurat for maximum spiritual benefit." },
+        ];
+        // Pick 3 predictions based on dateNum
+        return [
+          predictions[dateNum % predictions.length],
+          predictions[(dateNum + 5) % predictions.length],
+          predictions[(dateNum + 10) % predictions.length],
+        ];
+      })(),
+
+      // ── Daily Horoscope per Zodiac Sign ──
+      horoscope: zodiacs.map((sign, idx) => {
+        const horoscopePool = [
+          "Today brings a wave of confidence. Trust your instincts and take bold decisions.",
+          "Financial matters require careful attention. A surprise gift may brighten your day.",
+          "Romance is in the air. Express your feelings to your partner or crush today.",
+          "Health needs extra care. Avoid stress and take regular breaks from work.",
+          "A breakthrough at work is likely. Your hard work will finally pay off.",
+          "Family time will bring peace. Cook something special for your loved ones.",
+          "Travel plans may materialize suddenly. Be ready for an exciting short trip.",
+          "Students will find today productive. Focus on studies for maximum benefit.",
+          "Property matters may need attention. Legal documents should be reviewed carefully.",
+          "Spiritual growth is highlighted. Visit a sacred place or start a new sadhana.",
+          "Communication is your strength today. Use it to resolve pending conflicts.",
+          "Creative energy is high. Artists and writers will find inspiration easily.",
+        ];
+        const luckyNumbers = [3, 7, 9, 1, 5, 2, 8, 4, 6, 11, 22, 13];
+        const luckyColors = ["Red", "Gold", "Green", "Blue", "White", "Orange", "Purple", "Yellow", "Pink", "Maroon", "Silver", "Turquoise"];
+        const ratings = ["Excellent", "Good", "Average", "Challenging", "Promising"];
+        const signSeed = dateNum + idx;
+
+        return {
+          sign,
+          prediction: horoscopePool[signSeed % horoscopePool.length],
+          luckyNumber: luckyNumbers[signSeed % luckyNumbers.length],
+          luckyColor: luckyColors[signSeed % luckyColors.length],
+          overallRating: ratings[signSeed % ratings.length],
+        };
+      }),
     };
 
     return res.json({ success: true, data: panchangData });

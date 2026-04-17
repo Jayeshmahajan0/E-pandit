@@ -7,6 +7,7 @@ const {
   rejectBooking,
   updateBookingStatus,
   cancelBooking,
+  convertToCash,
   getBooking,
   getUserBookings,
   getPanditBookings,
@@ -20,5 +21,6 @@ router.put("/:id/accept", authMiddleware, acceptBooking);
 router.put("/:id/reject", authMiddleware, rejectBooking);
 router.put("/:id/status", authMiddleware, updateBookingStatus);
 router.put("/:id/cancel", authMiddleware, cancelBooking);
+router.put("/:id/convert-to-cash", authMiddleware, convertToCash);
 
 module.exports = router;

@@ -13,6 +13,9 @@ const adminRoutes = require("./routes/adminRoutes");
 const uploadRoutes = require("./routes/uploadRoutes");
 const panchangRoutes = require("./routes/panchangRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
+const availabilityRoutes = require("./routes/availabilityRoutes");
+const kundliRoutes = require("./routes/kundliRoutes");
+const samagriRoutes = require("./routes/samagriRoutes");
 
 // ── App Setup ──────────────────────────────────
 const app = express();
@@ -48,6 +51,7 @@ app.get("/", (_req, res) => {
       panchang: "/api/panchang",
       payments: "/api/payments",
       admin: "/api/admin",
+      samagri: "/api/samagri",
     },
   });
 });
@@ -66,6 +70,9 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/panchang", panchangRoutes);
 app.use("/api/payments", paymentRoutes);
+app.use("/api/availability", availabilityRoutes);
+app.use("/api/kundli", kundliRoutes);
+app.use("/api/samagri", samagriRoutes);
 
 // ── 404 Handler ────────────────────────────────
 app.use((_req, res) => {

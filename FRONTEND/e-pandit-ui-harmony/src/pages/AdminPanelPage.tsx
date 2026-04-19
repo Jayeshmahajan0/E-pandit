@@ -8,7 +8,8 @@ import { poojaCategories } from "@/data/mockData"; // Ensure extended poojas exi
 
 const AdminPanelPage = () => {
   const [activeTab, setActiveTab] = useState<"pending" | "verified" | "rejected" | "all">("pending");
-  const [pandits, setPandits] = useState<any[]>([]);
+  const [roleTab, setRoleTab] = useState<"pandit" | "vendor">("pandit");
+  const [profiles, setProfiles] = useState<any[]>([]);
   const [stats, setStats] = useState({ total: 0, pending: 0, verified: 0, rejected: 0 });
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -18,14 +19,14 @@ const AdminPanelPage = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const statsRes = await api.get("/admin/stats");
+      const statsRes = await api.get(`/admin/stats?role=${roleTab}`);
       setStats(statsRes.data.data);
       
-      let url = "/admin/all-pandits";
-      if (activeTab === "pending") url = "/admin/pending-pandits";
+      let url = `/admin/all-pandits?role=${roleTab}`;
+      if (activeTab === "pending") url = `/admin/pending-pandits?role=${roleTab}`;
       
-      const panditsRes = await api.get(url);
-      setPandits(panditsRes.data.data || []);
+      const profilesRes = await api.get(url);
+      setProfiles(profilesRes.data.data || []);
       
     } catch (error) {
       toast.error("Failed to fetch admin data");
@@ -36,7 +37,7 @@ const AdminPanelPage = () => {
 
   useEffect(() => {
     fetchData();
-  }, [activeTab]);
+  }, [activeTab, roleTab]);
 
   const loadPanditDetails = async (id: string) => {
     if (expandedId === id) {
@@ -46,7 +47,7 @@ const AdminPanelPage = () => {
     
     try {
       const res = await api.get(`/admin/pandit/${id}`);
-      setPandits(prev => prev.map(p => p.id === id ? { ...p, ...res.data.data, fullDetailsLoaded: true } : p));
+      setProfiles(prev => prev.map(p => p.id === id ? { ...p, ...res.data.data, fullDetailsLoaded: true } : p));
       setExpandedId(id);
     } catch (error) {
       toast.error("Failed to load details");
@@ -89,13 +90,29 @@ const AdminPanelPage = () => {
             <ShieldCheck className="w-8 h-8 text-primary" />
             Admin Dashboard
           </h1>
-          <p className="text-muted-foreground">Manage pandit verifications and system status</p>
+          <p className="text-muted-foreground">Manage verifications and system status</p>
         </motion.div>
+
+        {/* Role Toggle */}
+        <div className="flex bg-muted rounded-xl p-1 mb-6 max-w-sm">
+          <button
+            onClick={() => { setRoleTab("pandit"); setActiveTab("pending"); }}
+            className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${roleTab === "pandit" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            Pandits
+          </button>
+          <button
+            onClick={() => { setRoleTab("vendor"); setActiveTab("pending"); }}
+            className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${roleTab === "vendor" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            Vendors
+          </button>
+        </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <div className="bg-card p-5 rounded-2xl shadow-card border border-border">
-            <h3 className="text-sm font-semibold text-muted-foreground mb-1">Total Pandits</h3>
+            <h3 className="text-sm font-semibold text-muted-foreground mb-1">Total {roleTab === "pandit" ? "Pandits" : "Vendors"}</h3>
             <p className="text-3xl font-bold text-foreground">{stats.total}</p>
           </div>
           <div className="bg-gold/10 p-5 rounded-2xl shadow-card border border-gold/20">
@@ -127,43 +144,43 @@ const AdminPanelPage = () => {
           ))}
         </div>
 
-        {/* Pandit List */}
+        {/* List */}
         <div className="space-y-4">
           {loading ? (
-             <div className="text-center py-10 text-muted-foreground">Loading pandits...</div>
-          ) : pandits.length === 0 ? (
-             <div className="text-center py-10 text-muted-foreground bg-card rounded-xl border border-border">No pandits found in this category.</div>
+             <div className="text-center py-10 text-muted-foreground">Loading {roleTab}s...</div>
+          ) : profiles.length === 0 ? (
+             <div className="text-center py-10 text-muted-foreground bg-card rounded-xl border border-border">No {roleTab}s found in this category.</div>
           ) : (
-            pandits.map((pandit) => (
+            profiles.map((profile) => (
                <motion.div
-                 key={pandit.id}
+                 key={profile.id}
                  className="bg-card rounded-2xl shadow-card border border-border overflow-hidden"
                >
                  <div className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer hover:bg-muted/30 transition-colors"
-                      onClick={() => loadPanditDetails(pandit.id)}>
+                      onClick={() => loadPanditDetails(profile.id)}>
                    <div className="flex items-center gap-4">
                      <div className="w-12 h-12 rounded-full bg-secondary overflow-hidden shrink-0">
-                       {pandit.avatar_url || pandit.profile_photo_url ? (
-                          <img src={pandit.avatar_url || pandit.profile_photo_url} alt="" className="w-full h-full object-cover" />
+                       {profile.avatar_url || profile.profile_photo_url ? (
+                          <img src={profile.avatar_url || profile.profile_photo_url} alt="" className="w-full h-full object-cover" />
                        ) : (
                           <User className="w-6 h-6 m-auto mt-3 text-muted-foreground" />
                        )}
                      </div>
                      <div>
-                       <h3 className="font-semibold text-foreground">{pandit.full_name}</h3>
-                       <p className="text-sm text-muted-foreground flex items-center gap-1"><MapPin className="w-3 h-3"/> {pandit.district || pandit.location}</p>
+                       <h3 className="font-semibold text-foreground">{profile.full_name}</h3>
+                       <p className="text-sm text-muted-foreground flex items-center gap-1"><MapPin className="w-3 h-3"/> {profile.district || profile.location}</p>
                      </div>
                    </div>
                    <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto">
-                     {getStatusBadge(pandit.verification_status)}
+                     {getStatusBadge(profile.verification_status)}
                      <button className="p-2 hover:bg-secondary rounded-lg transition-colors">
-                       {expandedId === pandit.id ? <ChevronUp className="w-5 h-5"/> : <ChevronDown className="w-5 h-5"/>}
+                       {expandedId === profile.id ? <ChevronUp className="w-5 h-5"/> : <ChevronDown className="w-5 h-5"/>}
                      </button>
                    </div>
                  </div>
 
                  <AnimatePresence>
-                   {expandedId === pandit.id && pandit.fullDetailsLoaded && (
+                   {expandedId === profile.id && profile.fullDetailsLoaded && (
                      <motion.div
                        initial={{ height: 0, opacity: 0 }}
                        animate={{ height: "auto", opacity: 1 }}
@@ -175,39 +192,51 @@ const AdminPanelPage = () => {
                          <div className="space-y-4">
                            <h4 className="font-semibold flex items-center gap-2"><User className="w-4 h-4 text-primary"/> Personal & Contact</h4>
                            <div className="space-y-2 text-sm">
-                             <p><span className="text-muted-foreground">Email:</span> {pandit.email}</p>
-                             <p><span className="text-muted-foreground">Phone:</span> {pandit.phone}</p>
-                             <p><span className="text-muted-foreground">Location:</span> {pandit.district}, {pandit.state} ({pandit.pin_code})</p>
-                             <p><span className="text-muted-foreground">DOB:</span> {pandit.date_of_birth || "N/A"}</p>
-                             <p><span className="text-muted-foreground">Gotra:</span> {pandit.gotra || "N/A"}</p>
+                             <p><span className="text-muted-foreground">Email:</span> {profile.email}</p>
+                             <p><span className="text-muted-foreground">Phone:</span> {profile.phone}</p>
+                             <p><span className="text-muted-foreground">Location:</span> {profile.district}, {profile.state} {profile.pin_code && `(${profile.pin_code})`}</p>
+                             {roleTab === "pandit" && (
+                               <>
+                                 <p><span className="text-muted-foreground">DOB:</span> {profile.date_of_birth || "N/A"}</p>
+                                 <p><span className="text-muted-foreground">Gotra:</span> {profile.gotra || "N/A"}</p>
+                               </>
+                             )}
                            </div>
 
-                           <h4 className="font-semibold flex items-center gap-2 mt-4"><BookOpen className="w-4 h-4 text-primary"/> Professional</h4>
-                           <div className="space-y-2 text-sm">
-                             <p><span className="text-muted-foreground">Experience:</span> {pandit.experience_years} years</p>
-                             <p><span className="text-muted-foreground">Service Radius:</span> {pandit.service_radius_km} km</p>
-                             <p><span className="text-muted-foreground">Regional Traditions:</span> {pandit.regional_traditions || "N/A"}</p>
-                             <p><span className="text-muted-foreground">Price/Pooja:</span> ₹{pandit.price_per_pooja}</p>
-                             <p><span className="text-muted-foreground">Languages:</span> {(pandit.languages || []).join(", ")}</p>
-                           </div>
+                           {roleTab === "pandit" && (
+                             <>
+                               <h4 className="font-semibold flex items-center gap-2 mt-4"><BookOpen className="w-4 h-4 text-primary"/> Professional</h4>
+                               <div className="space-y-2 text-sm">
+                                 <p><span className="text-muted-foreground">Experience:</span> {profile.experience_years} years</p>
+                                 <p><span className="text-muted-foreground">Service Radius:</span> {profile.service_radius_km} km</p>
+                                 <p><span className="text-muted-foreground">Regional Traditions:</span> {profile.regional_traditions || "N/A"}</p>
+                                 <p><span className="text-muted-foreground">Price/Pooja:</span> ₹{profile.price_per_pooja}</p>
+                                 <p><span className="text-muted-foreground">Languages:</span> {(profile.languages || []).join(", ")}</p>
+                               </div>
+                             </>
+                           )}
                          </div>
 
                          <div className="space-y-4">
-                           <h4 className="font-semibold flex items-center gap-2"><FileCheck className="w-4 h-4 text-primary"/> Documents</h4>
-                           <div className="space-y-3">
-                             <div className="flex items-center justify-between p-3 bg-background border border-border rounded-lg">
-                               <span className="text-sm font-medium">Aadhar Front</span>
-                               {pandit.aadhar_front_url ? (
-                                  <button onClick={() => setPdfUrl(pandit.aadhar_front_url)} className="text-primary text-xs font-semibold flex items-center gap-1 hover:underline"><Eye className="w-3 h-3"/> View</button>
-                               ) : <span className="text-xs text-muted-foreground">Not provided</span>}
-                             </div>
-                             <div className="flex items-center justify-between p-3 bg-background border border-border rounded-lg">
-                               <span className="text-sm font-medium">Bank Details</span>
-                               <span className="text-xs text-muted-foreground">{pandit.bank_name || "N/A"} - {pandit.bank_account_number || "N/A"} ({pandit.bank_ifsc || "N/A"})</span>
-                             </div>
-                           </div>
+                           {roleTab === "pandit" && (
+                             <>
+                               <h4 className="font-semibold flex items-center gap-2"><FileCheck className="w-4 h-4 text-primary"/> Documents</h4>
+                               <div className="space-y-3">
+                                 <div className="flex items-center justify-between p-3 bg-background border border-border rounded-lg">
+                                   <span className="text-sm font-medium">Aadhar Front</span>
+                                   {profile.aadhar_front_url ? (
+                                      <button onClick={() => setPdfUrl(profile.aadhar_front_url)} className="text-primary text-xs font-semibold flex items-center gap-1 hover:underline"><Eye className="w-3 h-3"/> View</button>
+                                   ) : <span className="text-xs text-muted-foreground">Not provided</span>}
+                                 </div>
+                                 <div className="flex items-center justify-between p-3 bg-background border border-border rounded-lg">
+                                   <span className="text-sm font-medium">Bank Details</span>
+                                   <span className="text-xs text-muted-foreground">{profile.bank_name || "N/A"} - {profile.bank_account_number || "N/A"} ({profile.bank_ifsc || "N/A"})</span>
+                                 </div>
+                               </div>
+                             </>
+                           )}
 
-                           {pandit.verification_status === "pending" && (
+                           {profile.verification_status === "pending" && (
                               <div className="mt-6 space-y-3 bg-background p-4 rounded-xl border border-border">
                                 <h4 className="font-semibold text-sm">Verification Action</h4>
                                 <textarea 
@@ -217,10 +246,10 @@ const AdminPanelPage = () => {
                                   className="w-full text-sm p-3 rounded-lg border border-border bg-muted outline-none h-20 resize-none focus:border-primary"
                                 />
                                 <div className="flex gap-2">
-                                  <button onClick={() => handleVerify(pandit.id, 'verified')} className="flex-1 bg-sacred-green/10 text-sacred-green font-bold py-2 rounded-lg border border-sacred-green/20 hover:bg-sacred-green hover:text-white transition-colors flex items-center justify-center gap-2">
+                                  <button onClick={() => handleVerify(profile.id, 'verified')} className="flex-1 bg-sacred-green/10 text-sacred-green font-bold py-2 rounded-lg border border-sacred-green/20 hover:bg-sacred-green hover:text-white transition-colors flex items-center justify-center gap-2">
                                     <Check className="w-4 h-4"/> Approve
                                   </button>
-                                  <button onClick={() => handleVerify(pandit.id, 'rejected')} className="flex-1 bg-destructive/10 text-destructive font-bold py-2 rounded-lg border border-destructive/20 hover:bg-destructive hover:text-white transition-colors flex items-center justify-center gap-2">
+                                  <button onClick={() => handleVerify(profile.id, 'rejected')} className="flex-1 bg-destructive/10 text-destructive font-bold py-2 rounded-lg border border-destructive/20 hover:bg-destructive hover:text-white transition-colors flex items-center justify-center gap-2">
                                     <X className="w-4 h-4"/> Reject
                                   </button>
                                 </div>

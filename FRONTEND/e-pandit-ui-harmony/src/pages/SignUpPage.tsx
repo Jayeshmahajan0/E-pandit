@@ -9,6 +9,7 @@ import omOrnament from "@/assets/om-ornament.png";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import api from "@/lib/api";
+import { indianStates } from "@/data/locationData";
 
 const signUpSchema = z
   .object({
@@ -23,10 +24,22 @@ const signUpSchema = z
       .regex(/[A-Z]/, "Must contain at least one uppercase letter")
       .regex(/[0-9]/, "Must contain at least one number"),
     confirmPassword: z.string(),
+    role: z.enum(["user", "vendor"]).default("user"),
+    state: z.string().optional(),
+    district: z.string().optional(),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",
     path: ["confirmPassword"],
+  })
+  .refine((data) => {
+    if (data.role === "vendor") {
+      return !!data.state && !!data.district;
+    }
+    return true;
+  }, {
+    message: "Location is required for vendors",
+    path: ["district"],
   });
 
 type SignUpFormData = z.infer<typeof signUpSchema>;
@@ -47,12 +60,21 @@ const SignUpPage = () => {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<SignUpFormData>({
     resolver: zodResolver(signUpSchema),
+    defaultValues: {
+      role: "user"
+    }
   });
 
   const watchPassword = watch("password", "");
+  const selectedRole = watch("role");
+  const selectedState = watch("state");
+  
+  const currentStateData = indianStates.find((s) => s.name === selectedState);
+  const districts = currentStateData?.districts.map((d) => d.name) || [];
 
   const onSubmit = async (data: SignUpFormData) => {
     setIsLoading(true);
@@ -61,7 +83,10 @@ const SignUpPage = () => {
         fullName: data.fullName,
         email: data.email,
         phone: data.phone,
-        password: data.password
+        password: data.password,
+        role: data.role,
+        state: data.state,
+        district: data.district
       });
 
       const { user, token } = response.data.data;
@@ -75,7 +100,11 @@ const SignUpPage = () => {
       toast.success("Account created successfully!");
 
       setTimeout(() => {
-        window.location.href = "/dashboard";
+        if (data.role === "vendor") {
+          window.location.href = "/vendor/dashboard";
+        } else {
+          window.location.href = "/dashboard";
+        }
       }, 500);
 
     } catch (error: any) {
@@ -141,6 +170,29 @@ const SignUpPage = () => {
 
           {/* Form */}
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-3.5">
+            {/* Role Toggle */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="flex bg-muted rounded-xl p-1 mb-4"
+            >
+              <button
+                type="button"
+                onClick={() => setValue("role", "user")}
+                className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${selectedRole === "user" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                User
+              </button>
+              <button
+                type="button"
+                onClick={() => setValue("role", "vendor")}
+                className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${selectedRole === "vendor" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                Samagri Vendor
+              </button>
+            </motion.div>
+
             {/* Full Name */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
@@ -223,6 +275,49 @@ const SignUpPage = () => {
                 </p>
               )}
             </motion.div>
+
+            {/* Location (Only for Vendors) */}
+            {selectedRole === "vendor" && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                className="grid grid-cols-2 gap-3"
+              >
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-foreground">State</label>
+                  <select
+                    {...register("state")}
+                    onChange={(e) => {
+                      setValue("state", e.target.value);
+                      setValue("district", "");
+                    }}
+                    className={`w-full px-3 py-3 rounded-xl border bg-background text-sm outline-none transition-all focus:ring-2 focus:ring-primary/20 ${errors.state ? "border-destructive" : "border-border"}`}
+                  >
+                    <option value="">Select State</option>
+                    {indianStates.map((s) => (
+                      <option key={s.name} value={s.name}>{s.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-foreground">District</label>
+                  <select
+                    {...register("district")}
+                    className={`w-full px-3 py-3 rounded-xl border bg-background text-sm outline-none transition-all focus:ring-2 focus:ring-primary/20 ${errors.district ? "border-destructive" : "border-border"}`}
+                  >
+                    <option value="">Select District</option>
+                    {districts.map((d) => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </select>
+                </div>
+                {(errors.state || errors.district) && (
+                  <p className="text-xs text-destructive col-span-2">
+                    {errors.district?.message || "Location is required"}
+                  </p>
+                )}
+              </motion.div>
+            )}
 
             {/* Password */}
             <motion.div

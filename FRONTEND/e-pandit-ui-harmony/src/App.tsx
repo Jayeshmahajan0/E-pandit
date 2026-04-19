@@ -20,6 +20,7 @@ import BookingTrackingPage from "./pages/BookingTrackingPage";
 import PanditRegisterPage from "./pages/PanditRegisterPage";
 import PanditDashboardPage from "./pages/PanditDashboardPage";
 import ReviewPage from "./pages/ReviewPage";
+import VendorDashboardPage from "./pages/VendorDashboardPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -49,6 +50,7 @@ const App = () => (
           {/* Pandit routes */}
           <Route path="/pandit/register" element={<PanditRegisterPage />} />
           <Route path="/pandit/dashboard" element={<PanditDashboardPage />} />
+          <Route path="/vendor/dashboard" element={<VendorDashboardPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

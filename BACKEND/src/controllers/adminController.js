@@ -3,11 +3,12 @@ const supabase = require("../config/supabase");
 
 const getPendingPandits = async (req, res, next) => {
   try {
+    const role = req.query.role || "pandit";
     if (supabase) {
       const { data, error } = await supabase
         .from("profiles")
         .select("id, full_name, email, phone, location:district, created_at, avatar_url, specializations, verification_status")
-        .eq("role", "pandit")
+        .eq("role", role)
         .eq("verification_status", "pending");
 
       if (error) throw error;
@@ -21,11 +22,12 @@ const getPendingPandits = async (req, res, next) => {
 
 const getAllPandits = async (req, res, next) => {
   try {
+    const role = req.query.role || "pandit";
     if (supabase) {
       const { data, error } = await supabase
         .from("profiles")
         .select("id, full_name, email, phone, location:district, created_at, avatar_url, specializations, verification_status")
-        .eq("role", "pandit")
+        .eq("role", role)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -111,18 +113,19 @@ const verifyPandit = async (req, res, next) => {
 
 const getDashboardStats = async (req, res, next) => {
   try {
+    const role = req.query.role || "pandit";
     if (supabase) {
-      const { data: allPandits, error } = await supabase
+      const { data: allProfiles, error } = await supabase
         .from("profiles")
         .select("verification_status")
-        .eq("role", "pandit");
+        .eq("role", role);
         
       if (error) throw error;
       
-      const total = allPandits.length;
-      const pending = allPandits.filter(p => p.verification_status === 'pending').length;
-      const verified = allPandits.filter(p => p.verification_status === 'verified').length;
-      const rejected = allPandits.filter(p => p.verification_status === 'rejected').length;
+      const total = allProfiles.length;
+      const pending = allProfiles.filter(p => p.verification_status === 'pending').length;
+      const verified = allProfiles.filter(p => p.verification_status === 'verified').length;
+      const rejected = allProfiles.filter(p => p.verification_status === 'rejected').length;
       
       return res.json({ 
         success: true, 

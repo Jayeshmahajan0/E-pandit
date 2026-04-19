@@ -9,11 +9,20 @@ import ActiveBookingCard from "@/components/pandit/ActiveBookingCard";
 import OrnamentDivider from "@/components/shared/OrnamentDivider";
 import { useAuth } from "@/contexts/AuthContext";
 import api from "@/lib/api";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import ManageAvailabilityModal from "@/components/pandit/ManageAvailabilityModal";
 
 const PanditDashboardPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [bookings, setBookings] = useState<any[]>([]);
+  const [blockedDates, setBlockedDates] = useState<any[]>([]); // Store full object now
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  
+  // Modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalDate, setModalDate] = useState<Date>(new Date());
 
   const incomingBooking = bookings.find(b => b.status === "requested");
   const activeBooking = bookings.find(b => ["accepted", "arriving", "in_progress"].includes(b.status));
@@ -22,19 +31,60 @@ const PanditDashboardPage = () => {
   useEffect(() => {
     if (!user?.id) return;
 
-    const fetchBookings = async () => {
+    const fetchData = async () => {
       try {
-        const { data } = await api.get(`/bookings/pandit/${user.id}`);
-        setBookings(data.data);
+        const [bookingsRes, availRes] = await Promise.all([
+          api.get(`/bookings/pandit/${user.id}`),
+          api.get(`/availability/pandit/${user.id}`)
+        ]);
+        setBookings(bookingsRes.data.data);
+        
+        // Parse blocked dates from the database (keep full objects for modal)
+        setBlockedDates(availRes.data.data);
       } catch (error) {
-        console.error("Failed to fetch dashboard bookings");
+        console.error("Failed to fetch dashboard data", error);
       }
     };
 
-    fetchBookings();
-    const interval = setInterval(fetchBookings, 3000);
+    fetchData();
+    const interval = setInterval(fetchData, 10000); // 10s is better for db load
     return () => clearInterval(interval);
   }, [user?.id]);
+
+  const handleDayClick = (day: Date) => {
+    setModalDate(day);
+    setIsModalOpen(true);
+  };
+
+  const handleSaveAvailability = async (payload: any) => {
+    try {
+      await api.post(`/availability/pandit`, payload);
+      toast.success("Availability updated successfully");
+      // Fast refresh
+      const { data } = await api.get(`/availability/pandit/${user?.id}`);
+      setBlockedDates(data.data);
+    } catch {
+      toast.error("Failed to save availability");
+    }
+  };
+
+  const handleDeleteAvailability = async () => {
+    // For now, setting it to available via POST. In real app, DELETE /api/availability/pandit/:date
+    try {
+      await api.post(`/availability/pandit`, {
+        date: format(modalDate, "yyyy-MM-dd"),
+        isFullDay: false,
+        slots: [],
+        reason: 'personal',
+        notes: ''
+      });
+      toast.success("Day marked as fully available");
+      const { data } = await api.get(`/availability/pandit/${user?.id}`);
+      setBlockedDates(data.data);
+    } catch {
+      toast.error("Failed to clear availability");
+    }
+  };
 
   const handleAcceptBooking = async (id: string) => {
     try {
@@ -177,6 +227,70 @@ const PanditDashboardPage = () => {
 
           <OrnamentDivider />
 
+          {/* Availability Calendar */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25 }}
+            className="bg-card rounded-2xl p-6 shadow-card overflow-hidden"
+          >
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+              <div>
+                <h2 className="font-serif text-xl font-bold text-foreground flex items-center gap-2">
+                  <CalendarDays className="w-6 h-6 text-primary" /> Schedule & Availability
+                </h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Click any date to manage specific hours or take a full day off.
+                </p>
+              </div>
+              <div className="flex gap-4 text-xs font-medium">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-3 h-3 rounded-full bg-destructive" /> Full Day Off
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-3 h-3 rounded-full bg-orange-500" /> Partially Busy
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-center bg-background rounded-xl border border-border p-2 md:p-6 shadow-inner">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onDayClick={(day) => {
+                  setSelectedDate(day);
+                  handleDayClick(day);
+                }}
+                className="w-full pointer-events-auto"
+                classNames={{
+                  months: "w-full",
+                  month: "w-full space-y-4",
+                  table: "w-full border-collapse space-y-2",
+                  head_row: "flex w-full mb-2",
+                  head_cell: "text-muted-foreground font-bold w-full text-center text-xs md:text-sm uppercase tracking-wider",
+                  row: "flex w-full mt-2 gap-1 md:gap-2",
+                  cell: "text-center text-sm p-0 relative focus-within:relative focus-within:z-20 w-full flex-1",
+                  day: "h-12 md:h-16 w-full p-0 font-medium hover:bg-secondary rounded-xl transition-all border border-transparent flex items-center justify-center relative",
+                  day_selected: "border-primary/50 shadow-md",
+                  day_today: "bg-accent/50 text-accent-foreground font-bold border-primary/20",
+                  day_outside: "text-muted-foreground opacity-30",
+                  day_disabled: "text-muted-foreground opacity-30",
+                }}
+                disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))}
+                modifiers={{
+                  blockedFull: blockedDates.filter(d => d.is_full_day).map(d => new Date(d.date)),
+                  blockedPartial: blockedDates.filter(d => !d.is_full_day && d.slots?.length > 0).map(d => new Date(d.date))
+                }}
+                modifiersClassNames={{
+                  blockedFull: "bg-destructive/10 text-destructive font-bold border-destructive/20 after:content-[''] after:absolute after:bottom-1 after:md:bottom-2 after:w-1.5 after:h-1.5 after:bg-destructive after:rounded-full",
+                  blockedPartial: "bg-orange-500/10 text-orange-700 font-bold border-orange-500/20 after:content-[''] after:absolute after:bottom-1 after:md:bottom-2 after:w-1.5 after:h-1.5 after:bg-orange-500 after:rounded-full"
+                }}
+              />
+            </div>
+          </motion.div>
+
+          <OrnamentDivider />
+
           {/* Recent bookings */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -221,6 +335,14 @@ const PanditDashboardPage = () => {
           </motion.div>
         </div>
       </div>
+      <ManageAvailabilityModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        date={modalDate}
+        existingData={blockedDates.find(d => d.date === format(modalDate, "yyyy-MM-dd"))}
+        onSave={handleSaveAvailability}
+        onDelete={handleDeleteAvailability}
+      />
     </Layout>
   );
 };

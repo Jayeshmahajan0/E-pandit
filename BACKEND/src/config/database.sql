@@ -68,9 +68,9 @@ CREATE TABLE IF NOT EXISTS profiles (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Admin role check adjustment
+-- Admin and Vendor role check adjustment
 ALTER TABLE profiles DROP CONSTRAINT IF EXISTS profiles_role_check;
-ALTER TABLE profiles ADD CONSTRAINT profiles_role_check CHECK (role IN ('user', 'pandit', 'admin'));
+ALTER TABLE profiles ADD CONSTRAINT profiles_role_check CHECK (role IN ('user', 'pandit', 'admin', 'vendor'));
 
 -- Verification log table
 CREATE TABLE IF NOT EXISTS verification_logs (
@@ -166,6 +166,62 @@ CREATE TABLE IF NOT EXISTS payments (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- ── 6. AVAILABILITY ────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS pandit_blocked_dates (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  pandit_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  date DATE NOT NULL,
+  is_full_day BOOLEAN DEFAULT false,
+  slots TEXT[] DEFAULT '{}',
+  reason VARCHAR(50) DEFAULT 'personal' CHECK (reason IN ('personal', 'booked', 'other')),
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(pandit_id, date)
+);
+
+-- ── 7. POOJA SAMAGRI (VENDORS) ──────────────────────────────
+CREATE TABLE IF NOT EXISTS samagri_items (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  vendor_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  pooja_type VARCHAR(100) NOT NULL,
+  description TEXT,
+  price INTEGER NOT NULL,
+  image_url TEXT,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ── 8. SAMAGRI ORDERS ────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS samagri_orders (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  vendor_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  total_amount INTEGER NOT NULL,
+  payment_method VARCHAR(20) DEFAULT 'upi' CHECK (payment_method IN ('upi', 'cod')),
+  payment_status VARCHAR(20) DEFAULT 'pending' CHECK (payment_status IN ('pending', 'paid', 'refunded', 'cod_pending')),
+  order_status VARCHAR(20) DEFAULT 'placed' CHECK (order_status IN ('placed', 'accepted', 'shipped', 'delivered', 'cancelled')),
+  shipping_address TEXT NOT NULL,
+  user_phone VARCHAR(15),
+  notes TEXT,
+  razorpay_order_id VARCHAR(255),
+  razorpay_payment_id VARCHAR(255),
+  razorpay_signature TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ── 9. SAMAGRI ORDER ITEMS ───────────────────────────────────
+CREATE TABLE IF NOT EXISTS samagri_order_items (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  order_id UUID REFERENCES samagri_orders(id) ON DELETE CASCADE NOT NULL,
+  samagri_id UUID REFERENCES samagri_items(id) ON DELETE SET NULL,
+  quantity INTEGER NOT NULL DEFAULT 1,
+  price_at_time INTEGER NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- ── INDEXES ─────────────────────────────────────────────────
 CREATE INDEX IF NOT EXISTS idx_profiles_role ON profiles(role);
 CREATE INDEX IF NOT EXISTS idx_profiles_district ON profiles(district);
@@ -178,6 +234,8 @@ CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_unread ON notifications(user_id) WHERE is_read = false;
 CREATE INDEX IF NOT EXISTS idx_payments_booking ON payments(booking_id);
 CREATE INDEX IF NOT EXISTS idx_payments_order ON payments(razorpay_order_id);
+CREATE INDEX IF NOT EXISTS idx_pandit_blocked_dates_pandit ON pandit_blocked_dates(pandit_id);
+CREATE INDEX IF NOT EXISTS idx_pandit_blocked_dates_date ON pandit_blocked_dates(date);
 
 -- ── ENABLE REALTIME ─────────────────────────────────────────
 -- Run these in Supabase Dashboard > Database > Replication

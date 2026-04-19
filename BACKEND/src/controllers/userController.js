@@ -111,7 +111,7 @@ const generateToken = (user) => {
 // ──────────────────────────────────────────────
 const registerUser = async (req, res, next) => {
   try {
-    const { fullName, email, phone, password, role = "user" } = req.body;
+    const { fullName, email, phone, password, role = "user", state, district } = req.body;
 
     if (!fullName || !email || !password) {
       return res.status(400).json({ success: false, message: "Full name, email, and password are required" });
@@ -126,9 +126,17 @@ const registerUser = async (req, res, next) => {
       const salt = await bcrypt.genSalt(10);
       const passwordHash = await bcrypt.hash(password, salt);
 
+      const insertData = { full_name: fullName, email, phone: phone || null, password_hash: passwordHash, role };
+      if (role === "vendor") {
+        insertData.state = state || null;
+        insertData.district = district || null;
+        insertData.verification_status = "pending";
+        insertData.is_verified = false;
+      }
+
       const { data: newUser, error } = await supabase
         .from("profiles")
-        .insert({ full_name: fullName, email, phone: phone || null, password_hash: passwordHash, role })
+        .insert(insertData)
         .select()
         .single();
 

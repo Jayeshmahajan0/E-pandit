@@ -7,6 +7,8 @@ import PanchangCard from "@/components/booking/PanchangCard";
 import ChoghadiyaCard from "@/components/booking/ChoghadiyaCard";
 import HoroscopeSection from "@/components/booking/HoroscopeSection";
 import AnimatedCTAButton from "@/components/shared/AnimatedCTAButton";
+import KundliGenerator from "@/components/kundli/KundliGenerator";
+import KundliMatching from "@/components/kundli/KundliMatching";
 import api from "@/lib/api";
 
 const PanchangPage = () => {
@@ -20,6 +22,9 @@ const PanchangPage = () => {
   const [activeViewTab, setActiveViewTab] = useState("panchang"); // For segregating sections
   const [userDOB, setUserDOB] = useState("");
   const [userNumerology, setUserNumerology] = useState<{mulank: number, bhagyank: number} | null>(null);
+  
+  // Kundli Tab State
+  const [kundliMode, setKundliMode] = useState<"generator" | "matching">("generator");
 
   const isToday = selectedDate === new Date().toISOString().split('T')[0];
 
@@ -338,64 +343,35 @@ const PanchangPage = () => {
               )}
 
               {/* VIEW: Kundali & Insights (Available for all days) */}
-              {activeViewTab === "insights" && panchangData && (
+              {activeViewTab === "insights" && (
                 <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-6">
-                  <div className="grid md:grid-cols-2 gap-6">
-                     {/* Kundali Placeholder Graphic */}
-                     <div className="bg-card rounded-[2rem] border border-border p-6 shadow-card relative overflow-hidden flex flex-col items-center justify-center text-center">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl -mr-10 -mt-10"></div>
-                        <Compass className="w-14 h-14 text-gold mb-4 opacity-80" />
-                        <h3 className="font-serif font-bold text-xl mb-2">Planetary Transit</h3>
-                        <p className="text-sm text-muted-foreground mb-6 px-4">View today's planetary positions and how they align with your Kundali.</p>
-                        
-                        {/* SVG representation of North Indian Kundali Chart */}
-                        <svg viewBox="0 0 100 100" className="w-40 h-40 text-primary/20 mb-6 drop-shadow-sm">
-                          <rect x="5" y="5" width="90" height="90" fill="none" stroke="currentColor" strokeWidth="2"/>
-                          <line x1="5" y1="5" x2="95" y2="95" stroke="currentColor" strokeWidth="2"/>
-                          <line x1="5" y1="95" x2="95" y2="5" stroke="currentColor" strokeWidth="2"/>
-                          <line x1="50" y1="5" x2="95" y2="50" stroke="currentColor" strokeWidth="2"/>
-                          <line x1="95" y1="50" x2="50" y2="95" stroke="currentColor" strokeWidth="2"/>
-                          <line x1="50" y1="95" x2="5" y2="50" stroke="currentColor" strokeWidth="2"/>
-                          <line x1="5" y1="50" x2="50" y2="5" stroke="currentColor" strokeWidth="2"/>
-                          {/* Fake Planets */}
-                          <text x="45" y="25" fontSize="6" fill="currentColor" className="font-bold opacity-60">Su</text>
-                          <text x="15" y="50" fontSize="6" fill="currentColor" className="font-bold opacity-60">Mo</text>
-                          <text x="75" y="50" fontSize="6" fill="currentColor" className="font-bold opacity-60">Ra</text>
-                          <text x="45" y="80" fontSize="6" fill="currentColor" className="font-bold opacity-60">Ju</text>
-                        </svg>
-                        
-                        <button className="text-sm font-bold text-primary hover:underline flex items-center gap-1">
-                          Generate Free Kundali <ArrowRight className="w-4 h-4" />
-                        </button>
-                     </div>
-
-                     {/* Information Box */}
-                     <div className="bg-card rounded-[2rem] border border-border p-8 shadow-card hover:shadow-elevated transition-shadow h-full flex flex-col justify-center">
-                       <h3 className="font-serif text-xl font-bold mb-6 flex items-center gap-2">
-                         <Sparkles className="w-6 h-6 text-primary" /> Daily Insight
-                       </h3>
-                       <div className="space-y-4">
-                         <div className="p-4 bg-secondary/50 rounded-2xl border border-secondary">
-                           <p className="text-xs text-muted-foreground uppercase tracking-wider font-bold mb-2">Moon Sign</p>
-                           <p className="text-base font-medium text-foreground">
-                             {panchangData?.insights?.moonSign ? `Entering ${panchangData.insights.moonSign} by midday.` : "Calculating..."}
-                           </p>
-                         </div>
-                         <div className="p-4 bg-secondary/50 rounded-2xl border border-secondary">
-                           <p className="text-xs text-muted-foreground uppercase tracking-wider font-bold mb-2">Sun Sign</p>
-                           <p className="text-base font-medium text-foreground">
-                             {panchangData?.insights?.sunSign ? `Remains in ${panchangData.insights.sunSign}.` : "Calculating..."}
-                           </p>
-                         </div>
-                         <div className="p-4 bg-sacred-green/10 rounded-2xl border border-sacred-green/20">
-                           <p className="text-xs text-sacred-green uppercase tracking-wider font-bold mb-2 flex items-center gap-1"><BookOpen className="w-3 h-3"/> Mantra of the Day</p>
-                           <p className="text-lg font-medium text-foreground font-serif italic">
-                             {panchangData?.insights?.mantra ? `"${panchangData.insights.mantra}"` : '"Om"'}
-                           </p>
-                         </div>
-                       </div>
-                     </div>
+                  
+                  {/* Toggle Mode */}
+                  <div className="flex bg-card p-1.5 rounded-xl border border-border shadow-sm w-full md:w-auto self-start">
+                    <button
+                      onClick={() => setKundliMode("generator")}
+                      className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${
+                        kundliMode === "generator" 
+                          ? "bg-primary text-primary-foreground shadow-md" 
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      Janam Kundali
+                    </button>
+                    <button
+                      onClick={() => setKundliMode("matching")}
+                      className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${
+                        kundliMode === "matching" 
+                          ? "bg-rose-500 text-white shadow-md" 
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      Vivah Milan (Match)
+                    </button>
                   </div>
+
+                  {kundliMode === "generator" ? <KundliGenerator /> : <KundliMatching />}
+
                 </motion.div>
               )}
 

@@ -26,6 +26,19 @@ const BookingConfirmationModal = ({ isOpen, onClose, onConfirm, pandit, poojaTyp
   const [panchangData, setPanchangData] = useState<any>(null);
   const [loadingPanchang, setLoadingPanchang] = useState(false);
 
+  // Availability state
+  const [blockedDates, setBlockedDates] = useState<any[]>([]);
+  const [isDateBlocked, setIsDateBlocked] = useState(false);
+  const [isTimeBlocked, setIsTimeBlocked] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && pandit.id) {
+      api.get(`/availability/pandit/${pandit.id}`).then(res => {
+        setBlockedDates(res.data.data);
+      }).catch(err => console.error("Failed to fetch availability", err));
+    }
+  }, [isOpen, pandit.id]);
+
   useEffect(() => {
     if (!scheduledDate) {
       setPanchangData(null);
@@ -45,7 +58,34 @@ const BookingConfirmationModal = ({ isOpen, onClose, onConfirm, pandit, poojaTyp
     fetchPanchang();
   }, [scheduledDate]);
 
+  // Validate Date and Time against blocked slots
+  useEffect(() => {
+    if (!scheduledDate) {
+      setIsDateBlocked(false);
+      setIsTimeBlocked(false);
+      return;
+    }
+
+    const dateBlock = blockedDates.find(b => b.date === scheduledDate);
+    
+    if (dateBlock && dateBlock.is_full_day) {
+      setIsDateBlocked(true);
+      setIsTimeBlocked(false);
+    } else if (dateBlock && scheduledTime) {
+      setIsDateBlocked(false);
+      // Check if the specific time is in the slots array
+      // A slot like "09:00" might be blocked. Or maybe the exact string matches.
+      const isBlocked = dateBlock.slots?.includes(scheduledTime);
+      setIsTimeBlocked(isBlocked);
+    } else {
+      setIsDateBlocked(false);
+      setIsTimeBlocked(false);
+    }
+  }, [scheduledDate, scheduledTime, blockedDates]);
+
   const handleConfirm = () => {
+    if (isDateBlocked) return;
+    if (isTimeBlocked) return;
     const finalNotes = includePoojaKit ? `[Includes Premium Pooja Kit]\n${notes}` : notes;
     onConfirm({ paymentMethod, scheduledDate, scheduledTime, notes: finalNotes, address, amount: totalAmount });
   };
@@ -125,9 +165,11 @@ const BookingConfirmationModal = ({ isOpen, onClose, onConfirm, pandit, poojaTyp
                   <input
                     type="date"
                     value={scheduledDate}
+                    min={new Date().toISOString().split("T")[0]}
                     onChange={(e) => setScheduledDate(e.target.value)}
-                    className="w-full px-3 py-3 rounded-xl border border-border bg-background text-sm outline-none focus:border-primary"
+                    className={`w-full px-3 py-3 rounded-xl border bg-background text-sm outline-none focus:border-primary ${isDateBlocked ? 'border-destructive' : 'border-border'}`}
                   />
+                  {isDateBlocked && <p className="text-xs text-destructive">Pandit is not available on this date.</p>}
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
@@ -137,8 +179,9 @@ const BookingConfirmationModal = ({ isOpen, onClose, onConfirm, pandit, poojaTyp
                     type="time"
                     value={scheduledTime}
                     onChange={(e) => setScheduledTime(e.target.value)}
-                    className="w-full px-3 py-3 rounded-xl border border-border bg-background text-sm outline-none focus:border-primary"
+                    className={`w-full px-3 py-3 rounded-xl border bg-background text-sm outline-none focus:border-primary ${isTimeBlocked ? 'border-destructive' : 'border-border'}`}
                   />
+                  {isTimeBlocked && <p className="text-xs text-destructive">This specific time slot is booked.</p>}
                 </div>
               </div>
 
@@ -204,7 +247,8 @@ const BookingConfirmationModal = ({ isOpen, onClose, onConfirm, pandit, poojaTyp
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={handleConfirm}
-                className="w-full py-3.5 bg-gradient-saffron text-primary-foreground rounded-xl font-bold text-sm shadow-soft hover:shadow-glow transition-all"
+                disabled={isDateBlocked || isTimeBlocked || !scheduledDate || !scheduledTime}
+                className="w-full py-3.5 bg-gradient-saffron text-primary-foreground rounded-xl font-bold text-sm shadow-soft hover:shadow-glow transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Confirm Booking — ₹{totalAmount.toLocaleString("en-IN")}
               </motion.button>

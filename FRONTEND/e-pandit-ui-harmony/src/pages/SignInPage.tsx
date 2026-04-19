@@ -50,6 +50,8 @@ const SignInPage = () => {
       setTimeout(() => {
         if (user.role === "pandit") {
           window.location.href = "/pandit/dashboard";
+        } else if (user.role === "vendor") {
+          window.location.href = "/vendor/dashboard";
         } else {
           window.location.href = "/dashboard";
         }

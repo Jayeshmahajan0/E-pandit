@@ -102,12 +102,47 @@ const acceptBooking = async (req, res, next) => {
     const { id } = req.params;
 
     if (supabase) {
+      // Get booking first to know date and time
+      const { data: existingBooking, error: fetchError } = await supabase
+        .from("bookings")
+        .select("*")
+        .eq("id", id)
+        .eq("status", "requested")
+        .single();
+        
+      if (fetchError || !existingBooking) return res.status(404).json({ success: false, message: "Booking not found or already processed" });
+
       const { data, error } = await supabase
         .from("bookings")
         .update({ status: "accepted", accepted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-        .eq("id", id).eq("status", "requested").select().single();
+        .eq("id", id).select().single();
       if (error) throw error;
-      if (!data) return res.status(404).json({ success: false, message: "Booking not found or already processed" });
+      
+      // Auto-block the slot in pandit availability
+      if (existingBooking.scheduled_date && existingBooking.scheduled_time) {
+        // We read existing slots first to append
+        const { data: availData } = await supabase
+          .from("pandit_blocked_dates")
+          .select("slots")
+          .eq("pandit_id", existingBooking.pandit_id)
+          .eq("date", existingBooking.scheduled_date)
+          .single();
+          
+        let newSlots = [existingBooking.scheduled_time];
+        if (availData && availData.slots) {
+          newSlots = [...new Set([...availData.slots, existingBooking.scheduled_time])];
+        }
+        
+        await supabase
+          .from("pandit_blocked_dates")
+          .upsert({
+            pandit_id: existingBooking.pandit_id,
+            date: existingBooking.scheduled_date,
+            slots: newSlots,
+            reason: 'booked'
+          }, { onConflict: 'pandit_id, date' });
+      }
+
       return res.json({ success: true, message: "Booking accepted!", data });
     }
 

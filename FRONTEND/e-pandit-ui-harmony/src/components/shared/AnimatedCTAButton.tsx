@@ -1,12 +1,10 @@
 import { motion } from "framer-motion";
 import { ReactNode } from "react";
 
-interface AnimatedCTAButtonProps {
+interface AnimatedCTAButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   children: ReactNode;
-  onClick?: () => void;
   variant?: "primary" | "secondary" | "outline";
   size?: "sm" | "md" | "lg";
-  className?: string;
 }
 
 const variants = {
@@ -23,18 +21,18 @@ const sizes = {
 
 const AnimatedCTAButton = ({
   children,
-  onClick,
   variant = "primary",
   size = "md",
   className = "",
+  ...props
 }: AnimatedCTAButtonProps) => {
   return (
     <motion.button
-      whileHover={{ scale: 1.03 }}
-      whileTap={{ scale: 0.97 }}
+      whileHover={props.disabled ? {} : { scale: 1.03 }}
+      whileTap={props.disabled ? {} : { scale: 0.97 }}
       transition={{ type: "spring", stiffness: 400, damping: 17 }}
-      onClick={onClick}
-      className={`rounded-lg font-semibold transition-all duration-300 inline-flex items-center justify-center gap-2 ${variants[variant]} ${sizes[size]} ${className}`}
+      className={`rounded-lg font-semibold transition-all duration-300 inline-flex items-center justify-center gap-2 ${variants[variant]} ${sizes[size]} ${props.disabled ? 'opacity-70 cursor-not-allowed' : ''} ${className}`}
+      {...props}
     >
       {children}
     </motion.button>

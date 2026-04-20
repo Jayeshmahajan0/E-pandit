@@ -219,7 +219,7 @@ const PanditRegisterPage = () => {
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium text-foreground">Phone</label>
-                      <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="9876543210" className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:border-primary" />
+                      <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="9119446550" className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:border-primary" />
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium text-foreground">Date of Birth</label>

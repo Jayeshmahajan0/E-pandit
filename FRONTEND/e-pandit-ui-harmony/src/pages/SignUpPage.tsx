@@ -267,7 +267,7 @@ const SignUpPage = () => {
                 </span>
                 <input
                   {...register("phone")}
-                  placeholder="9876543210"
+                  placeholder="000000000"
                   maxLength={10}
                   onChange={() => serverError?.field === "phone" && setServerError(null)}
                   className={`w-full pl-[4.5rem] pr-4 py-3 rounded-xl border bg-background text-sm outline-none transition-all duration-300 focus:ring-2 focus:ring-primary/20 focus:border-primary ${

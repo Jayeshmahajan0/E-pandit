@@ -22,6 +22,7 @@ import PanditDashboardPage from "./pages/PanditDashboardPage";
 import ReviewPage from "./pages/ReviewPage";
 import VendorDashboardPage from "./pages/VendorDashboardPage";
 import NotFound from "./pages/NotFound";
+import ChatbotWidget from "./components/shared/ChatbotWidget";
 
 const queryClient = new QueryClient();
 
@@ -31,6 +32,7 @@ const App = () => (
       <TooltipProvider>
       <Toaster />
       <Sonner />
+      <ChatbotWidget />
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />

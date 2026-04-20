@@ -165,7 +165,7 @@ const ProfileForm = ({ initialData, onSave }: ProfileFormProps) => {
               <input
                 {...register("phone")}
                 disabled={!isEditing}
-                placeholder="9876543210"
+                placeholder="9119446550"
                 maxLength={10}
                 className={`w-full pl-12 pr-4 py-3 rounded-xl border text-sm transition-all duration-300 outline-none ${
                   isEditing

@@ -158,7 +158,7 @@ const PoojaKitsPage = () => {
         totalAmount: totalPrice,
         paymentMethod,
         shippingAddress: address,
-        userPhone: userPhone || "+91 0000000000"
+        userPhone: userPhone || "9876543210"
       };
 
       const res = await api.post("/samagri/orders", payload);

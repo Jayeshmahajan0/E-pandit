@@ -118,9 +118,26 @@ const registerUser = async (req, res, next) => {
     }
 
     if (supabase) {
-      const { data: existing } = await supabase.from("profiles").select("id").eq("email", email).single();
-      if (existing) {
-        return res.status(409).json({ success: false, message: "User with this email already exists" });
+      // Check email duplicate
+      const { data: existingEmail } = await supabase.from("profiles").select("id").eq("email", email).single();
+      if (existingEmail) {
+        return res.status(409).json({ 
+          success: false, 
+          message: "This email is already registered. Please sign in instead.",
+          field: "email"
+        });
+      }
+
+      // Check phone duplicate (if provided)
+      if (phone) {
+        const { data: existingPhone } = await supabase.from("profiles").select("id").eq("phone", phone).single();
+        if (existingPhone) {
+          return res.status(409).json({ 
+            success: false, 
+            message: "This phone number is already linked to another account.",
+            field: "phone"
+          });
+        }
       }
 
       const salt = await bcrypt.genSalt(10);
@@ -239,10 +256,18 @@ const loginUser = async (req, res, next) => {
 
     if (supabase) {
       const { data: user, error } = await supabase.from("profiles").select("*").eq("email", email).single();
-      if (error || !user) return res.status(401).json({ success: false, message: "Invalid email or password" });
+      if (error || !user) return res.status(401).json({ 
+        success: false, 
+        message: "No account found with this email. Please register first.",
+        field: "email"
+      });
 
       const isMatch = await bcrypt.compare(password, user.password_hash);
-      if (!isMatch) return res.status(401).json({ success: false, message: "Invalid email or password" });
+      if (!isMatch) return res.status(401).json({ 
+        success: false, 
+        message: "Incorrect password. Please try again.",
+        field: "password"
+      });
 
       const token = generateToken(user);
       return res.json({

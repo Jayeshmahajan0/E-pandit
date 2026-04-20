@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { User, Mail, Lock, Phone, Eye, EyeOff, ArrowRight, Check } from "lucide-react";
+import { User, Mail, Lock, Phone, Eye, EyeOff, ArrowRight, Check, AlertCircle } from "lucide-react";
 import omOrnament from "@/assets/om-ornament.png";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -54,6 +54,7 @@ const SignUpPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [serverError, setServerError] = useState<{ message: string; field?: string } | null>(null);
   const { login } = useAuth();
 
   const {
@@ -78,6 +79,7 @@ const SignUpPage = () => {
 
   const onSubmit = async (data: SignUpFormData) => {
     setIsLoading(true);
+    setServerError(null);
     try {
       const response = await api.post("/users/register", {
         fullName: data.fullName,
@@ -97,7 +99,7 @@ const SignUpPage = () => {
         email: user.email
       }, token);
 
-      toast.success("Account created successfully!");
+      toast.success("Account created! Welcome to E-Pandit 🎉");
 
       setTimeout(() => {
         if (data.role === "vendor") {
@@ -108,7 +110,9 @@ const SignUpPage = () => {
       }, 500);
 
     } catch (error: any) {
-      toast.error(error.response?.data?.error || "Registration failed. Try again.");
+      const msg = error.response?.data?.message || error.response?.data?.error || "Registration failed. Please try again.";
+      const field = error.response?.data?.field;
+      setServerError({ message: msg, field });
     } finally {
       setIsLoading(false);
     }
@@ -235,14 +239,14 @@ const SignUpPage = () => {
                   {...register("email")}
                   type="email"
                   placeholder="your@email.com"
-                  className={`w-full pl-11 pr-4 py-3 rounded-xl border bg-background text-sm outline-none transition-all duration-300 focus:ring-2 focus:ring-primary/20 focus:border-primary ${errors.email ? "border-destructive" : "border-border"
-                    }`}
+                  onChange={() => serverError?.field === "email" && setServerError(null)}
+                  className={`w-full pl-11 pr-4 py-3 rounded-xl border bg-background text-sm outline-none transition-all duration-300 focus:ring-2 focus:ring-primary/20 focus:border-primary ${
+                    errors.email || serverError?.field === "email" ? "border-destructive" : "border-border"
+                  }`}
                 />
               </div>
-              {errors.email && (
-                <p className="text-xs text-destructive">
-                  {errors.email.message}
-                </p>
+              {(errors.email || serverError?.field === "email") && (
+                <p className="text-xs text-destructive">{errors.email?.message || serverError?.message}</p>
               )}
             </motion.div>
 
@@ -265,14 +269,14 @@ const SignUpPage = () => {
                   {...register("phone")}
                   placeholder="9876543210"
                   maxLength={10}
-                  className={`w-full pl-[4.5rem] pr-4 py-3 rounded-xl border bg-background text-sm outline-none transition-all duration-300 focus:ring-2 focus:ring-primary/20 focus:border-primary ${errors.phone ? "border-destructive" : "border-border"
-                    }`}
+                  onChange={() => serverError?.field === "phone" && setServerError(null)}
+                  className={`w-full pl-[4.5rem] pr-4 py-3 rounded-xl border bg-background text-sm outline-none transition-all duration-300 focus:ring-2 focus:ring-primary/20 focus:border-primary ${
+                    errors.phone || serverError?.field === "phone" ? "border-destructive" : "border-border"
+                  }`}
                 />
               </div>
-              {errors.phone && (
-                <p className="text-xs text-destructive">
-                  {errors.phone.message}
-                </p>
+              {(errors.phone || serverError?.field === "phone") && (
+                <p className="text-xs text-destructive">{errors.phone?.message || serverError?.message}</p>
               )}
             </motion.div>
 
@@ -416,6 +420,21 @@ const SignUpPage = () => {
                 </p>
               )}
             </motion.div>
+
+            {/* Server Error Banner (general errors) */}
+            <AnimatePresence>
+              {serverError && !serverError.field && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  className="flex items-start gap-3 p-3.5 bg-destructive/10 border border-destructive/30 rounded-xl text-sm text-destructive"
+                >
+                  <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <p>{serverError.message}</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Submit */}
             <motion.button

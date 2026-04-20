@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShoppingCart, Plus, Minus, X, MapPin, Loader2, Check, Phone, Navigation } from "lucide-react";
+import { ShoppingCart, Plus, Minus, X, MapPin, Loader2, Check, Phone, Navigation, PackagePlus } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import AnimatedCTAButton from "@/components/shared/AnimatedCTAButton";
 import { poojaCategories } from "@/data/mockData";
@@ -8,6 +8,7 @@ import { indianStates } from "@/data/locationData";
 import api from "@/lib/api";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 interface SamagriItem {
   id: string;
@@ -31,6 +32,8 @@ interface CartItem extends SamagriItem {
 
 const PoojaKitsPage = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const isVendor = user?.role === "vendor";
   const [items, setItems] = useState<SamagriItem[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -211,30 +214,46 @@ const PoojaKitsPage = () => {
   return (
     <Layout>
       <section className="container py-8 md:py-12">
-        <div className="flex items-start justify-between mb-8">
+        <div className="flex items-start justify-between mb-8 gap-4">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <h1 className="font-serif text-3xl md:text-4xl font-bold text-foreground mb-2">
               Pooja Samagri
             </h1>
             <p className="text-muted-foreground">Get complete pooja kits from local vendors</p>
           </motion.div>
-          <motion.button
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            onClick={() => setCartOpen(!cartOpen)}
-            className="relative p-3 bg-card rounded-xl shadow-card hover:bg-muted transition-colors"
-          >
-            <ShoppingCart className="w-6 h-6 text-foreground" />
-            {totalItems > 0 && (
-              <motion.span
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold"
+
+          <div className="flex items-center gap-3 flex-shrink-0">
+            {/* Permanent vendor button — always visible when logged in as vendor */}
+            {isVendor && (
+              <motion.button
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                onClick={() => navigate("/vendor/dashboard")}
+                className="flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-xl font-medium text-sm hover:bg-primary/90 transition-colors shadow-soft"
               >
-                {totalItems}
-              </motion.span>
+                <PackagePlus className="w-4 h-4" />
+                Add Samagri
+              </motion.button>
             )}
-          </motion.button>
+
+            <motion.button
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              onClick={() => setCartOpen(!cartOpen)}
+              className="relative p-3 bg-card rounded-xl shadow-card hover:bg-muted transition-colors"
+            >
+              <ShoppingCart className="w-6 h-6 text-foreground" />
+              {totalItems > 0 && (
+                <motion.span
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold"
+                >
+                  {totalItems}
+                </motion.span>
+              )}
+            </motion.button>
+          </div>
         </div>
 
         {/* Filters */}

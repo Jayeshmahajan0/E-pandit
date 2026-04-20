@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, ArrowRight, AlertCircle } from "lucide-react";
 import omOrnament from "@/assets/om-ornament.png";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -20,6 +20,7 @@ type SignInFormData = z.infer<typeof signInSchema>;
 const SignInPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [serverError, setServerError] = useState<{ message: string; field?: string } | null>(null);
   const { login } = useAuth();
 
   const {
@@ -32,6 +33,7 @@ const SignInPage = () => {
 
   const onSubmit = async (data: SignInFormData) => {
     setIsLoading(true);
+    setServerError(null);
     try {
       const response = await api.post("/users/login", data);
 
@@ -44,7 +46,7 @@ const SignInPage = () => {
         is_online: user.isOnline || user.is_online
       }, token);
 
-      toast.success("Successfully logged in!");
+      toast.success("Welcome back! Redirecting...");
 
       // Redirect based on role
       setTimeout(() => {
@@ -58,7 +60,9 @@ const SignInPage = () => {
       }, 500);
 
     } catch (error: any) {
-      toast.error(error.response?.data?.error || "Failed to login. Please try again.");
+      const msg = error.response?.data?.message || error.response?.data?.error || "Failed to sign in. Please check your connection and try again.";
+      const field = error.response?.data?.field;
+      setServerError({ message: msg, field });
     } finally {
       setIsLoading(false);
     }
@@ -126,6 +130,21 @@ const SignInPage = () => {
 
           {/* Form */}
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+
+            {/* Server Error Banner */}
+            <AnimatePresence>
+              {serverError && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                  className="flex items-start gap-3 p-3.5 bg-destructive/10 border border-destructive/30 rounded-xl text-sm text-destructive"
+                >
+                  <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <p>{serverError.message}</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
             {/* Email */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
@@ -142,8 +161,10 @@ const SignInPage = () => {
                   {...register("email")}
                   type="email"
                   placeholder="your@email.com"
-                  className={`w-full pl-11 pr-4 py-3.5 rounded-xl border bg-background text-sm outline-none transition-all duration-300 focus:ring-2 focus:ring-primary/20 focus:border-primary ${errors.email ? "border-destructive" : "border-border"
-                    }`}
+                  onChange={() => serverError?.field === "email" && setServerError(null)}
+                  className={`w-full pl-11 pr-4 py-3.5 rounded-xl border bg-background text-sm outline-none transition-all duration-300 focus:ring-2 focus:ring-primary/20 focus:border-primary ${
+                    errors.email || serverError?.field === "email" ? "border-destructive" : "border-border"
+                  }`}
                 />
               </div>
               {errors.email && (
@@ -167,8 +188,10 @@ const SignInPage = () => {
                   {...register("password")}
                   type={showPassword ? "text" : "password"}
                   placeholder="Enter your password"
-                  className={`w-full pl-11 pr-12 py-3.5 rounded-xl border bg-background text-sm outline-none transition-all duration-300 focus:ring-2 focus:ring-primary/20 focus:border-primary ${errors.password ? "border-destructive" : "border-border"
-                    }`}
+                  onChange={() => serverError?.field === "password" && setServerError(null)}
+                  className={`w-full pl-11 pr-12 py-3.5 rounded-xl border bg-background text-sm outline-none transition-all duration-300 focus:ring-2 focus:ring-primary/20 focus:border-primary ${
+                    errors.password || serverError?.field === "password" ? "border-destructive" : "border-border"
+                  }`}
                 />
                 <button
                   type="button"
